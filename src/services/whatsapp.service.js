@@ -2,11 +2,12 @@ import { makeWASocket, DisconnectReason, useMultiFileAuthState } from '@whiskeys
 import qrcode from 'qrcode-terminal';
 import { getTemplate } from '../templates.js';
 
+
 let sock;
 let connected = false;
 
 async function connectToWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+  const { state, saveCreds } = await useMultiFileAuthState('auth_info'); // <-- Agrega esta línea
   sock = makeWASocket({ auth: state, printQRInTerminal: true });
 
   sock.ev.on('connection.update', (update) => {

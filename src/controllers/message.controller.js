@@ -1,4 +1,3 @@
-.controller.js
 import whatsappService from '../services/whatsapp.service.js';
 
 export async function sendMessage(req, res) {
