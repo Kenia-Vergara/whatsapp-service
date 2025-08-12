@@ -1,24 +1,34 @@
 import { makeWASocket, DisconnectReason, useMultiFileAuthState } from '@whiskeysockets/baileys';
-import qrcode from 'qrcode-terminal';
+import QRCode from 'qrcode';
 import { getTemplate } from '../templates.js';
-
 
 let sock;
 let connected = false;
+let qrCodeBase64 = null; // Almacenará el QR en base64
 
 async function connectToWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info'); // <-- Agrega esta línea
-  sock = makeWASocket({ auth: state, printQRInTerminal: true });
+  const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+  sock = makeWASocket({
+    auth: state,
+    printQRInTerminal: false // Desactivamos la impresión en terminal
+  });
 
-  sock.ev.on('connection.update', (update) => {
+  sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
-    if (qr) qrcode.generate(qr, { small: true });
+
+    if (qr) {
+      // Generamos el QR como base64
+      qrCodeBase64 = await QRCode.toDataURL(qr);
+    }
+
     if (connection === 'close') {
       const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
       if (shouldReconnect) connectToWhatsApp();
       connected = false;
+      qrCodeBase64 = null;
     } else if (connection === 'open') {
       connected = true;
+      qrCodeBase64 = null; // Limpiamos el QR cuando ya estamos conectados
     }
   });
 
@@ -29,6 +39,7 @@ connectToWhatsApp();
 
 export default {
   isConnected: () => connected,
+  getQrCode: () => qrCodeBase64,
   sendMessage: async ({ phone, templateOption, psicologo, fecha, hora }) => {
     if (!connected) throw new Error('WhatsApp no está conectado');
     let formattedPhone = phone.replace(/[^\d]/g, '');
