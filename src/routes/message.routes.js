@@ -6,5 +6,6 @@ const router = Router();
 
 router.post('/send-message', validateSendMessage, sendMessage);
 router.get('/status', getStatus);
+router.get('/qr-code', getQrCode);
 
 export default router;
