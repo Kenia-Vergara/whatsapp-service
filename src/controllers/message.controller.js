@@ -16,3 +16,16 @@ export function getStatus(req, res) {
     timestamp: new Date().toISOString()
   });
 }
+
+export function getQrCode(req, res) {
+  const qrCode = whatsappService.getQrCode();
+  if (!qrCode) {
+    return res.status(404).json({
+      success: false,
+      message: whatsappService.isConnected() ?
+        'Ya está conectado, no se necesita QR' :
+        'QR no disponible aún, intente más tarde'
+    });
+  }
+  res.json({ success: true, qrCode });
+}
