@@ -10,7 +10,9 @@ const app = express();
 
 app.use(helmet());
 app.use(cors({
-  origin: ['https://tudominio.com', 'http://localhost:3000'], // Ajusta según tus clientes
+  //origin: ['https://tudominio.com', 'http://localhost:3000'], // Ajusta según tus clientes
+  origin: ['*'],
+  credentials: true,
 }));
 app.use(express.json());
 
@@ -21,9 +23,6 @@ app.use(rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 }));
-
-// Autenticación por API Key
-app.use(apiKeyAuth);
 
 // Rutas de autenticación (sin API key)
 app.use('/api/auth', authRoutes);
