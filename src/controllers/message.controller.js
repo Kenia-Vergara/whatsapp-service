@@ -55,9 +55,86 @@ export function getQrCode(req, res) {
   });
 }
 
+// Nueva función para solicitar un nuevo QR
+export function requestNewQr(req, res) {
+  try {
+    const userId = req.user.userId;
+    const result = whatsappService.requestNewQr(userId);
+
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        estimatedWaitTime: result.estimatedWaitTime,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      // Determinar el código de estado apropiado
+      let statusCode = 400;
+
+      switch (result.reason) {
+        case 'QR_ACTIVE':
+          statusCode = 409; // Conflict
+          break;
+        case 'RATE_LIMIT_EXCEEDED':
+          statusCode = 429; // Too Many Requests
+          break;
+        case 'TOO_FREQUENT':
+          statusCode = 429; // Too Many Requests
+          break;
+        case 'ALREADY_CONNECTED':
+          statusCode = 409; // Conflict
+          break;
+        default:
+          statusCode = 400;
+      }
+
+      res.status(statusCode).json({
+        success: false,
+        reason: result.reason,
+        message: result.message,
+        ...(result.timeRemaining && { timeRemaining: result.timeRemaining }),
+        ...(result.timeToWait && { timeToWait: result.timeToWait }),
+        ...(result.timeUntilReset && { timeUntilReset: result.timeUntilReset }),
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    console.error('Error al solicitar nuevo QR:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+}
+
+// Nueva función para obtener estadísticas de QR del usuario
+export function getQrStats(req, res) {
+  try {
+    const userId = req.user.userId;
+    const stats = whatsappService.getQrStats(userId);
+
+    res.json({
+      success: true,
+      userId,
+      stats,
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error al obtener estadísticas de QR:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message
+    });
+  }
+}
+
 export function forceExpireQr(req, res) {
   try {
-    const result = whatsappService.forceExpireQr('admin_request');
+    const userId = req.user.userId;
+    const result = whatsappService.forceExpireQr('admin_request', userId);
     res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });

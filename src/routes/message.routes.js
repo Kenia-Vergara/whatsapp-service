@@ -1,5 +1,12 @@
 import { Router } from 'express';
-import { sendMessage, getStatus, getQrCode, forceExpireQr } from '../controllers/message.controller.js';
+import {
+  sendMessage,
+  getStatus,
+  getQrCode,
+  requestNewQr,
+  getQrStats,
+  forceExpireQr
+} from '../controllers/message.controller.js';
 import { validateSendMessage } from '../validators/message.validator.js';
 import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.js';
 
@@ -12,8 +19,11 @@ router.get('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
 // Cualquier usuario autenticado puede ver el estado
 router.get('/status', authenticateJWT, getStatus);
 
-// Nueva ruta para ver solo el estado del QR (sin el QR en sí)
-router.get('/qr-status', authenticateJWT, getQrCode);
+// Nueva ruta para solicitar un nuevo QR
+router.post('/qr-request', authenticateJWT, authorizeRole('admin'), requestNewQr);
+
+// Nueva ruta para ver estadísticas de QR del usuario
+router.get('/qr-stats', authenticateJWT, getQrStats);
 
 // Endpoint para forzar expiración del QR (solo admin)
 router.post('/qr-expire', authenticateJWT, authorizeRole('admin'), forceExpireQr);
