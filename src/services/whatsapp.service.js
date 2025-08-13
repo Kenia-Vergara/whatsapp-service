@@ -141,7 +141,7 @@ async function connectToWhatsApp() {
         qrCode: qrCodeBase64,
         expiresAt: expiryTime.toISOString(),
         expiresIn: QR_CONFIG.EXPIRY_TIME,
-        createdAt: new Date().ISOString(),
+        createdAt: new Date().toISOString(),
         generatedBy: 'system', // Indica que fue generado automáticamente
         requestId: null
       };
