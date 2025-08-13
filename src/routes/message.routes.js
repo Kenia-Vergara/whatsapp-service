@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { sendMessage, getStatus, getQrCode } from '../controllers/message.controller.js';
+import { sendMessage, getStatus, getQrCode, forceExpireQr } from '../controllers/message.controller.js';
 import { validateSendMessage } from '../validators/message.validator.js';
 import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.js';
 
