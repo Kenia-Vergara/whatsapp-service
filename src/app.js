@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import messageRoutes from './routes/message.routes.js';
+import authRoutes from './routes/auth.routes.js';
 import { apiKeyAuth } from './middlewares/auth.middleware.js';
 
 const app = express();
@@ -24,6 +25,10 @@ app.use(rateLimit({
 // Autenticación por API Key
 app.use(apiKeyAuth);
 
+// Rutas de autenticación (sin API key)
+app.use('/api/auth', authRoutes);
+
+// Rutas de mensajes (con API key)
 app.use('/api', messageRoutes);
 
 // Manejo de errores global
