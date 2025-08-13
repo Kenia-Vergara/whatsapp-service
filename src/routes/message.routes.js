@@ -12,4 +12,10 @@ router.get('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
 // Cualquier usuario autenticado puede ver el estado
 router.get('/status', authenticateJWT, getStatus);
 
+// Nueva ruta para ver solo el estado del QR (sin el QR en sí)
+router.get('/qr-status', authenticateJWT, getQrCode);
+
+// Endpoint para forzar expiración del QR (solo admin)
+router.post('/qr-expire', authenticateJWT, authorizeRole('admin'), forceExpireQr);
+
 export default router;
