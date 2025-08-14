@@ -206,11 +206,6 @@ function handleConnectionError(error) {
   setTimeout(() => reconnectToWhatsApp(), CONNECTION_CONFIG.RETRY_DELAY);
 }
 
-function handleConnectionError(error) {
-  console.error('❌ Error de conexión:', error);
-  setTimeout(() => reconnectToWhatsApp(), CONNECTION_CONFIG.RETRY_DELAY);
-}
-
 async function reconnectToWhatsApp() {
   if (connectionRetries >= CONNECTION_CONFIG.MAX_RETRIES) {
     console.log('❌ Máximo de reintentos alcanzado');
@@ -431,7 +426,7 @@ export default {
       return response;
     }
   },
-  
+
   getQrCode: () => {
     if (!qrCodeData) return null;
 
