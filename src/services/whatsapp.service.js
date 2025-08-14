@@ -26,6 +26,24 @@ function clearQrCode(reason = 'unknown') {
   }
 }
 
+// Función para limpiar el socket de manera segura
+function clearSocket(reason = 'unknown') {
+  if (sock) {
+    try {
+      // Solo hacer logout si el WebSocket está en estado válido
+      if (sock.ws && sock.ws.readyState === 1) { // WebSocket.OPEN
+        sock.logout();
+      }
+    } catch (error) {
+      console.log(`⚠️  Error al hacer logout del socket: ${error.message}`);
+    } finally {
+      sock = null;
+      connected = false;
+      console.log(`🗑️  Socket limpiado - Razón: ${reason}`);
+    }
+  }
+}
+
 // Función para validar si se puede generar un nuevo QR
 function canGenerateNewQr(userId) {
   const now = Date.now();
@@ -123,59 +141,98 @@ function recordQrGeneration(userId) {
 }
 
 async function connectToWhatsApp() {
-  const { state, saveCreds } = await useMultiFileAuthState('auth_info');
-  sock = makeWASocket({
-    auth: state,
-    printQRInTerminal: false
-  });
+  // Verificar si ya hay una conexión activa
+  if (sock && connected) {
+    console.log('✅ WhatsApp ya está conectado');
+    return { success: true, message: 'WhatsApp ya está conectado' };
+  }
 
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
+  try {
+    const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+    sock = makeWASocket({
+      auth: state,
+      printQRInTerminal: false,
+      connectTimeoutMs: 30000, // 30 segundos de timeout
+      defaultQueryTimeoutMs: 10000 // 10 segundos para queries
+    });
 
-    if (qr) {
-      // Generamos el QR con tiempo de expiración
-      const qrCodeBase64 = await QRCode.toDataURL(qr);
-      const expiryTime = new Date(Date.now() + QR_CONFIG.EXPIRY_TIME);
+    // Agregar manejo de errores del WebSocket
+    sock.ev.on('error', (error) => {
+      console.error('❌ Error en la conexión de WhatsApp:', error);
+      clearSocket('websocket_error');
+      clearQrCode('websocket_error');
+    });
 
-      qrCodeData = {
-        qrCode: qrCodeBase64,
-        expiresAt: expiryTime.toISOString(),
-        expiresIn: QR_CONFIG.EXPIRY_TIME,
-        createdAt: new Date().toISOString(),
-        generatedBy: 'system', // Indica que fue generado automáticamente
-        requestId: null
-      };
+    sock.ev.on('connection.update', async (update) => {
+      const { connection, lastDisconnect, qr } = update;
 
-      console.log(`🔄 Nuevo QR generado automáticamente - Expira en: ${expiryTime.toLocaleTimeString()}`);
-    }
+      if (qr) {
+        // Generamos el QR con tiempo de expiración
+        const qrCodeBase64 = await QRCode.toDataURL(qr);
+        const expiryTime = new Date(Date.now() + QR_CONFIG.EXPIRY_TIME);
 
-    if (connection === 'close') {
-      const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
-      if (shouldReconnect) {
-        console.log('🔄 Reconectando WhatsApp...');
-        connectToWhatsApp();
-      } else {
-        console.log('❌ Usuario cerró sesión de WhatsApp');
+        qrCodeData = {
+          qrCode: qrCodeBase64,
+          expiresAt: expiryTime.toISOString(),
+          expiresIn: QR_CONFIG.EXPIRY_TIME,
+          createdAt: new Date().toISOString(),
+          generatedBy: 'api_request', // Indica que fue generado por solicitud de API
+          requestId: Date.now()
+        };
+
+        console.log(`🔄 Nuevo QR generado por solicitud de API - Expira en: ${expiryTime.toLocaleTimeString()}`);
       }
-      connected = false;
-      clearQrCode('connection_closed');
-    } else if (connection === 'open') {
-      connected = true;
-      console.log('✅ WhatsApp conectado exitosamente - QR expirado por seguridad');
-      clearQrCode('successful_login');
-    }
-  });
 
-  sock.ev.on('creds.update', saveCreds);
+      if (connection === 'close') {
+        const shouldReconnect = (lastDisconnect?.error)?.output?.statusCode !== DisconnectReason.loggedOut;
+        if (shouldReconnect) {
+          console.log('🔄 Conexión cerrada, limpiando estado...');
+          // No reconectar automáticamente, solo limpiar el estado
+          clearSocket('connection_closed');
+          clearQrCode('connection_closed');
+        } else {
+          console.log('❌ Usuario cerró sesión de WhatsApp');
+          clearSocket('user_logout');
+          clearQrCode('user_logout');
+        }
+      } else if (connection === 'open') {
+        connected = true;
+        console.log('✅ WhatsApp conectado exitosamente - QR expirado por seguridad');
+        clearQrCode('successful_login');
+      }
+    });
+
+    sock.ev.on('creds.update', saveCreds);
+
+    // Agregar timeout para evitar conexiones colgadas
+    setTimeout(() => {
+      if (sock && !connected && !qrCodeData) {
+        console.log('⏰ Timeout de conexión, limpiando socket...');
+        clearSocket('connection_timeout');
+        clearQrCode('connection_timeout');
+      }
+    }, 60000); // 1 minuto
+
+    return { success: true, message: 'Iniciando conexión a WhatsApp' };
+  } catch (error) {
+    console.error('Error al conectar con WhatsApp:', error);
+    return { success: false, message: 'Error al conectar con WhatsApp', error: error.message };
+  }
 }
 
-connectToWhatsApp();
+// NO se ejecuta automáticamente al importar el módulo
+// connectToWhatsApp();
 
 export default {
   isConnected: () => connected,
 
+  // Nueva función para iniciar la conexión a WhatsApp
+  startConnection: async () => {
+    return await connectToWhatsApp();
+  },
+
   // Función mejorada para solicitar un nuevo QR
-  requestNewQr: (userId) => {
+  requestNewQr: async (userId) => {
     const validation = canGenerateNewQr(userId);
 
     if (!validation.allowed) {
@@ -185,11 +242,34 @@ export default {
       };
     }
 
-    // Si no hay QR activo, forzar la desconexión para generar uno nuevo
+    // Si no hay conexión activa, iniciar la conexión primero
+    if (!sock || !connected) {
+      console.log(`🔄 Iniciando conexión a WhatsApp para usuario: ${userId}`);
+      const connectionResult = await connectToWhatsApp();
+      
+      if (!connectionResult.success) {
+        return {
+          success: false,
+          reason: 'CONNECTION_ERROR',
+          message: 'Error al iniciar conexión con WhatsApp',
+          error: connectionResult.error
+        };
+      }
+    }
+
+    // Si no hay QR activo y hay un socket, intentar generar uno nuevo
     if (sock && !connected) {
       try {
-        sock.logout();
-        console.log(`🔄 Forzando nueva generación de QR para usuario: ${userId}`);
+        // Verificar que el socket esté en un estado válido antes de hacer logout
+        if (sock.ws && sock.ws.readyState === 1) { // WebSocket.OPEN
+          console.log(`🔄 Forzando nueva generación de QR para usuario: ${userId}`);
+          sock.logout();
+        } else {
+          // Si el WebSocket no está listo, crear una nueva conexión
+          console.log(`🔄 WebSocket no está listo, creando nueva conexión para usuario: ${userId}`);
+          clearSocket('websocket_not_ready');
+          await connectToWhatsApp();
+        }
 
         // Registrar la solicitud
         recordQrGeneration(userId);
@@ -201,10 +281,20 @@ export default {
         };
       } catch (error) {
         console.error('Error al forzar nueva generación de QR:', error);
+        
+        // Si hay error, limpiar el socket y crear uno nuevo
+        try {
+          clearSocket('generation_error');
+          await connectToWhatsApp();
+        } catch (reconnectError) {
+          console.error('Error al reconectar:', reconnectError);
+        }
+
         return {
           success: false,
           reason: 'GENERATION_ERROR',
-          message: 'Error al generar nuevo QR. Intente más tarde.'
+          message: 'Error al generar nuevo QR. Se intentará reconectar automáticamente.',
+          error: error.message
         };
       }
     }

@@ -21,6 +21,36 @@ export function getStatus(req, res) {
   });
 }
 
+// Nueva función para iniciar la conexión a WhatsApp
+export async function startConnection(req, res) {
+  try {
+    const result = await whatsappService.startConnection();
+    
+    if (result.success) {
+      res.json({
+        success: true,
+        message: result.message,
+        timestamp: new Date().toISOString()
+      });
+    } else {
+      res.status(500).json({
+        success: false,
+        message: result.message,
+        error: result.error,
+        timestamp: new Date().toISOString()
+      });
+    }
+  } catch (error) {
+    console.error('Error al iniciar conexión:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor al iniciar conexión',
+      error: error.message,
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
 export function getQrCode(req, res) {
   const qrData = whatsappService.getQrCode();
 
@@ -56,10 +86,10 @@ export function getQrCode(req, res) {
 }
 
 // Nueva función para solicitar un nuevo QR
-export function requestNewQr(req, res) {
+export async function requestNewQr(req, res) {
   try {
     const userId = req.user.userId;
-    const result = whatsappService.requestNewQr(userId);
+    const result = await whatsappService.requestNewQr(userId);
 
     if (result.success) {
       res.json({
@@ -85,6 +115,9 @@ export function requestNewQr(req, res) {
         case 'ALREADY_CONNECTED':
           statusCode = 409; // Conflict
           break;
+        case 'CONNECTION_ERROR':
+          statusCode = 503; // Service Unavailable
+          break;
         default:
           statusCode = 400;
       }
@@ -96,6 +129,7 @@ export function requestNewQr(req, res) {
         ...(result.timeRemaining && { timeRemaining: result.timeRemaining }),
         ...(result.timeToWait && { timeToWait: result.timeToWait }),
         ...(result.timeUntilReset && { timeUntilReset: result.timeUntilReset }),
+        ...(result.error && { error: result.error }),
         timestamp: new Date().toISOString()
       });
     }

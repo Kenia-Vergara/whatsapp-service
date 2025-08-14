@@ -5,7 +5,8 @@ import {
   getQrCode,
   requestNewQr,
   getQrStats,
-  forceExpireQr
+  forceExpireQr,
+  startConnection
 } from '../controllers/message.controller.js';
 import { validateSendMessage } from '../validators/message.validator.js';
 import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.js';
@@ -18,6 +19,9 @@ router.get('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
 
 // Cualquier usuario autenticado puede ver el estado
 router.get('/status', authenticateJWT, getStatus);
+
+// Nueva ruta para iniciar la conexión a WhatsApp
+router.post('/start-connection', authenticateJWT, authorizeRole('admin'), startConnection);
 
 // Nueva ruta para solicitar un nuevo QR
 router.post('/qr-request', authenticateJWT, authorizeRole('admin'), requestNewQr);
