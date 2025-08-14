@@ -16,7 +16,7 @@ export function getStatus(req, res) {
   res.json({
     success: true,
     connected: whatsappService.isConnected(),
-    qrStatus,
+    ...qrStatus,
     timestamp: new Date().toISOString()
   });
 }
@@ -25,7 +25,7 @@ export function getStatus(req, res) {
 export async function startConnection(req, res) {
   try {
     const result = await whatsappService.startConnection();
-    
+
     if (result.success) {
       res.json({
         success: true,
@@ -53,35 +53,17 @@ export async function startConnection(req, res) {
 
 export function getQrCode(req, res) {
   const qrData = whatsappService.getQrCode();
-
-  if (!qrData) {
-    const status = whatsappService.getQrStatus();
-
-    if (status.status === 'connected') {
-      return res.status(404).json({
-        success: false,
-        message: 'Ya está conectado, no se necesita QR',
-        status: 'connected'
-      });
-    } else if (status.status === 'expired') {
-      return res.status(410).json({
-        success: false,
-        message: 'El QR ha expirado, se generará uno nuevo automáticamente',
-        status: 'expired'
-      });
-    } else {
-      return res.status(404).json({
-        success: false,
-        message: 'QR no disponible aún, intente más tarde',
-        status: 'waiting'
-      });
-    }
+  if (qrData) {
+    return res.json({
+      success: true,
+      ...qrData,
+      message: `QR válido por ${qrData.timeRemaining} segundos más`
+    });
   }
 
-  res.json({
-    success: true,
-    ...qrData,
-    message: `QR válido por ${qrData.timeRemaining} segundos más`
+  return res.status(404).json({
+    success: false,
+    message: 'No hay QR disponible.',
   });
 }
 

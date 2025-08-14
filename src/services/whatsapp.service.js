@@ -6,6 +6,7 @@ let sock;
 let connected = false;
 let qrCodeData = null;
 let connectionRetries = 0;
+let connectionState = 'disconnected';
 let isConnecting = false;
 
 
@@ -135,69 +136,64 @@ function recordQrGeneration(userId) {
 }
 
 async function connectToWhatsApp() {
-  // Evitar múltiples conexiones simultáneas
   if (isConnecting) {
-    return { success: false, message: 'Ya se está intentando conectar' };
-  }
-
-  // Verificar si ya hay una conexión activa
-  if (sock && connected) {
-    console.log('✅ WhatsApp ya está conectado');
-    return { success: true, message: 'WhatsApp ya está conectado' };
+    console.log('⚠️ Conexión ya en progreso, ignorando solicitud duplicada');
+    return { success: false, message: 'Conexión ya en progreso' };
   }
 
   isConnecting = true;
-  connectionRetries = 0;
+  console.log('🔃 Iniciando nueva conexión WhatsApp...');
 
   try {
     const { state, saveCreds } = await useMultiFileAuthState('auth_info');
+
+    // Limpiar conexión anterior si existe
+    if (sock) {
+      clearConnection('new_connection_attempt');
+    }
+
     sock = makeWASocket({
       auth: state,
       printQRInTerminal: false,
       connectTimeoutMs: CONNECTION_CONFIG.CONNECTION_TIMEOUT,
       defaultQueryTimeoutMs: 10000,
-      keepAliveIntervalMs: 20000, // Mantener conexión activa
-      browser: ['Ubuntu', 'Chrome', '20.0.0'] // UserAgent consistente
+      keepAliveIntervalMs: 20000,
+      browser: ['Ubuntu', 'Chrome', '20.0.0']
     });
 
-    // Manejo de eventos mejorado
     sock.ev.on('connection.update', handleConnectionUpdate);
     sock.ev.on('creds.update', saveCreds);
     sock.ev.on('error', handleConnectionError);
 
-    return { success: true, message: 'Iniciando conexión a WhatsApp' };
+    return { success: true, message: 'Conexión iniciada correctamente' };
   } catch (error) {
     isConnecting = false;
-    console.error('Error inicial en conexión:', error);
-    return handleConnectionFailure(error);
+    console.error('❌ Error crítico en conexión:', error);
+    return {
+      success: false,
+      message: 'Error al establecer conexión',
+      error: error.message
+    };
   }
 }
 
 function handleConnectionUpdate(update) {
-  const { connection, lastDisconnect, qr } = update;
+  const { connection, qr } = update;
 
+  // Manejar QR
   if (qr && activeQrRequests.size > 0) {
-    generateNewQR(qr).then(() => {
+    generateNewQR(qr).finally(() => {
       activeQrRequests.clear();
     });
   }
 
-  if (connection === 'close') {
-    const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
-
-    if (shouldReconnect) {
-      console.log('🔄 Conexión cerrada, intentando reconectar...');
-      setTimeout(() => reconnectToWhatsApp(), CONNECTION_CONFIG.RETRY_DELAY);
-    } else {
-      console.log('❌ Sesión cerrada por el usuario');
-      clearConnection('user_logout');
-    }
-  } else if (connection === 'open') {
-    console.log('✅ Conexión establecida con WhatsApp');
-    connected = true;
-    isConnecting = false;
-    connectionRetries = 0;
+  // Manejar estados de conexión
+  if (connection === 'open') {
+    connectionState = 'connected';
     clearQrCode('connected');
+  }
+  else if (connection === 'close') {
+    connectionState = 'disconnected';
   }
 }
 
@@ -265,69 +261,6 @@ async function generateNewQR(qr) {
   }
 }
 
-function handleConnectionFailure(error, context = 'unknown') {
-  console.error(`❌ Fallo en conexión (Contexto: ${context})`, error);
-
-  // Limpiar estado actual
-  clearConnection(`failure_${context}`);
-
-  // Determinar si se debe reintentar
-  const shouldRetry = determineIfShouldRetry(error);
-
-  if (shouldRetry) {
-    const retryDelay = calculateRetryDelay();
-    console.log(`⏳ Intentando reconexión en ${retryDelay}ms...`);
-
-    setTimeout(() => {
-      reconnectToWhatsApp();
-    }, retryDelay);
-
-    return {
-      success: false,
-      recoverable: true,
-      message: 'Error recuperable, se intentará reconectar',
-      error: error.message
-    };
-  }
-
-  return {
-    success: false,
-    recoverable: false,
-    message: 'Error crítico, requiere intervención manual',
-    error: error.message
-  };
-}
-
-// Funciones auxiliares
-function determineIfShouldRetry(error) {
-  // Lista de errores recuperables
-  const RECOVERABLE_ERRORS = [
-    'ETIMEDOUT',
-    'ECONNRESET',
-    'EPIPE',
-    'ECONNREFUSED',
-    'QR refs attempts ended'
-  ];
-
-  // No reintentar si es un logout deliberado
-  if (error?.output?.statusCode === DisconnectReason.loggedOut) {
-    return false;
-  }
-
-  // Reintentar si es un error conocido como recuperable
-  return RECOVERABLE_ERRORS.some(e => error.message.includes(e));
-}
-
-function calculateRetryDelay() {
-  // Backoff exponencial con límite máximo
-  const baseDelay = 1000; // 1 segundo base
-  const maxDelay = 30000; // 30 segundos máximo
-  const delay = Math.min(baseDelay * Math.pow(2, connectionRetries), maxDelay);
-
-  // Aleatorizar ligeramente para evitar sincronización masiva
-  return delay * (0.8 + Math.random() * 0.4);
-}
-
 export default {
   isConnected: () => connected,
 
@@ -339,88 +272,67 @@ export default {
   // Función mejorada para solicitar un nuevo QR
   requestNewQr: async (userId) => {
     try {
-      // 1. Validación mejorada (lanza excepciones)
-      if (!qrHistory.has(userId)) {
-        qrHistory.set(userId, []);
-      }
+      // Validación de rate limiting
+      canGenerateNewQr(userId);
 
-      const now = Date.now();
-      const userHistory = qrHistory.get(userId).filter(t => (now - t) < (60 * 60 * 1000));
-
-      // Verificar límites de rate limiting
-      if (userHistory.length >= QR_CONFIG.MAX_QR_PER_HOUR) {
-        throw {
-          code: 'RATE_LIMIT_EXCEEDED',
-          message: `Has excedido el límite de ${QR_CONFIG.MAX_QR_PER_HOUR} QR por hora`,
-          resetTime: userHistory[0] + (60 * 60 * 1000) // Tiempo de reset
+      // Si ya estamos conectados, no necesitamos QR
+      if (connectionState === 'connected') {
+        return {
+          success: false,
+          code: 'ALREADY_CONNECTED',
+          message: 'Ya estás conectado a WhatsApp'
         };
       }
 
+      // Si hay un QR activo y no ha expirado
       if (qrCodeData && !isQrExpired()) {
-        throw {
+        return {
+          success: true,
           code: 'QR_ACTIVE',
           message: 'Ya hay un QR activo',
-          expiresIn: getQrTimeRemaining()
+          qrData: qrCodeData
         };
       }
 
-      // 2. Manejo de conexión mejorado
-      if (!sock || !connected) {
-        console.log(`🔄 Iniciando conexión para: ${userId}`);
-        const connectionResult = await connectToWhatsApp();
-
-        if (!connectionResult.success) {
-          throw {
-            code: 'CONNECTION_ERROR',
-            message: 'Error al conectar con WhatsApp',
-            error: connectionResult.error
-          };
-        }
-      }
-
-      // 3. Forzar generación de nuevo QR
-      activeQrRequests.add(userId);
-
-      if (sock?.ws?.readyState === 1) { // WebSocket.OPEN
-        console.log(`🔄 Reiniciando conexión para nuevo QR`);
-        await sock.logout();
-      } else {
-        console.log(`🔄 Creando nueva conexión`);
-        clearSocket('qr_generation');
+      // Manejo de conexión
+      if (connectionState === 'disconnected') {
+        connectionState = 'connecting';
         await connectToWhatsApp();
       }
 
-      // 4. Registrar y retornar
+      // Forzar generación de nuevo QR si es necesario
+      activeQrRequests.add(userId);
+      if (sock?.ws?.readyState === 1) {
+        await sock.logout();
+      }
+
       recordQrGeneration(userId);
 
       return {
         success: true,
-        message: 'Generación de QR iniciada',
-        details: {
-          qrRequests: userHistory.length + 1,
-          remaining: QR_CONFIG.MAX_QR_PER_HOUR - (userHistory.length + 1)
-        }
+        message: 'Solicitud de QR procesada',
+        status: connectionState
       };
 
     } catch (error) {
       activeQrRequests.delete(userId);
-      console.error(`❌ Error en QR [${error.code || 'UNKNOWN'}]:`, error.message);
+      connectionState = 'disconnected';
+      console.error(`❌ Error en solicitud de QR [${error.code || 'UNKNOWN'}]:`, error.message);
 
-      // Respuesta estructurada de error
       const response = {
         success: false,
-        code: error.code || 'QR_ERROR',
+        code: error.code || 'QR_GENERATION_ERROR',
         message: error.message,
         timestamp: new Date().toISOString()
       };
 
-      // Agregar metadatos según el tipo de error
+      // Agregar metadatos adicionales según el tipo de error
       if (error.code === 'RATE_LIMIT_EXCEEDED') {
-        response.timeUntilReset = Math.max(0, Math.ceil((error.resetTime - Date.now()) / 1000));
-      }
-
-      if (error.code === 'QR_ACTIVE') {
+        response.timeUntilReset = error.timeUntilReset;
+      } else if (error.code === 'QR_ACTIVE') {
         response.activeQrExpiresIn = error.expiresIn;
+      } else if (error.error) {
+        response.errorDetails = error.error;
       }
 
       return response;
@@ -447,34 +359,20 @@ export default {
 
   getQrStatus: () => {
     if (connected) {
+      return { status: 'connected', message: 'Ya estás conectado' };
+    }
+
+    if (qrCodeData) {
       return {
-        status: 'connected',
-        message: 'WhatsApp está conectado - QR expirado por seguridad',
-        connectedAt: new Date().toISOString()
+        status: isQrExpired() ? 'expired' : 'active',
+        message: isQrExpired()
+          ? 'QR expirado. Solicite uno nuevo.'
+          : `QR activo`,
+        expiresAt: getQrTimeRemaining(),
       };
     }
 
-    if (!qrCodeData) {
-      return {
-        status: 'waiting',
-        message: 'Esperando generación del QR'
-      };
-    }
-
-    if (isQrExpired()) {
-      return {
-        status: 'expired',
-        message: 'El QR ha expirado.'
-      };
-    }
-
-    const timeRemaining = getQrTimeRemaining();
-
-    return {
-      status: 'active',
-      message: `QR activo - Expira en ${timeRemaining} segundos`,
-      timeRemaining
-    };
+    return { status: 'waiting', message: 'No hay QR generado' };
   },
 
   // Función para obtener estadísticas de uso de QR
