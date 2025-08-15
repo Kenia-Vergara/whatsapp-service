@@ -125,10 +125,30 @@ export default {
   },
 
   getQRStatus() {
+    const now = Date.now();
+    const hasActiveQR = !!connectionState.qrData && now < connectionState.qrData.expiresAt;
+    
+    let qrInfo = null;
+    if (connectionState.qrData) {
+      const timeRemaining = Math.floor((connectionState.qrData.expiresAt - now) / 1000);
+      qrInfo = {
+        ...connectionState.qrData,
+        timeRemaining: timeRemaining > 0 ? timeRemaining : 0,
+        isExpired: timeRemaining <= 0,
+        age: Math.floor((now - new Date(connectionState.qrData.createdAt).getTime()) / 1000)
+      };
+    }
+
     return {
-      hasActiveQR: !!connectionState.qrData && Date.now() < connectionState.qrData.expiresAt,
-      qrData: connectionState.qrData,
-      isConnected: connectionState.socket?.user ? true : false
+      hasActiveQR,
+      qrData: qrInfo,
+      isConnected: connectionState.socket?.user ? true : false,
+      connectionState: {
+        isConnecting: connectionState.isConnecting,
+        hasSocket: !!connectionState.socket,
+        socketStatus: connectionState.socket ? 'active' : 'inactive'
+      },
+      lastUpdated: new Date().toISOString()
     };
   },
 
