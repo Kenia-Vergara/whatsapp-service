@@ -21,9 +21,9 @@ const QR_CONFIG = {
 // Configuración mejorada
 const CONNECTION_CONFIG = {
   MAX_RETRIES: 3,
-  RETRY_DELAY: 5000, // 5 segundos entre reintentos
-  QR_TIMEOUT: 60000, // 60 segundos para QR
-  CONNECTION_TIMEOUT: 30000 // 30 segundos timeout de conexión
+  RETRY_DELAY: 3000, // 3 segundos entre reintentos
+  QR_TIMEOUT: 30000, // 30 segundos para QR
+  CONNECTION_TIMEOUT: 20000 // 20 segundos timeout de conexión
 };
 
 // Historial de QR generados para auditoría y rate limiting
@@ -198,8 +198,14 @@ function handleConnectionUpdate(update) {
 }
 
 function handleConnectionError(error) {
-  console.error('❌ Error de conexión:', error);
-  setTimeout(() => reconnectToWhatsApp(), CONNECTION_CONFIG.RETRY_DELAY);
+  if (error.message.includes("QR refs attempts ended")) {
+    console.log("🔄 QR no escaneado: El qr expiro por su tiempo limite"); // Mensaje más amigable
+    clearQrCode('qr_attempts_ended');
+    setTimeout(() => connectToWhatsApp(), CONNECTION_CONFIG.RETRY_DELAY);
+  } else {
+    console.error('❌ Error de conexión:', error);
+    // Resto de tu lógica para otros errores...
+  }
 }
 
 async function reconnectToWhatsApp() {
