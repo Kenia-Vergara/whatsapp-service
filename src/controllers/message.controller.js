@@ -88,6 +88,7 @@ export function getQrCode(req, res) {
       qrInfo: {
         image: qrData.image,
         expiresAt: qrData.expiresAt,
+        createdAt: qrData.createdAt,
       },
     });
     
