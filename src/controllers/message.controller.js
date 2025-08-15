@@ -87,21 +87,8 @@ export function getQrCode(req, res) {
       message: `QR activo con ${qrData.timeRemaining} segundos restantes`,
       qrInfo: {
         image: qrData.image,
-        timeRemaining: qrData.timeRemaining,
-        timeRemainingFormatted: qrData.timeRemainingFormatted,
-        percentageRemaining: qrData.percentageRemaining,
-        timeStatus,
-        urgencyMessage,
         expiresAt: qrData.expiresAt,
-        createdAt: qrData.createdAt,
-        age: qrData.age
       },
-      actions: {
-        canRenew: qrData.timeRemaining <= 45,
-        shouldRenew: qrData.timeRemaining <= 30,
-        mustRenew: qrData.timeRemaining <= 10
-      },
-      timestamp: new Date().toISOString()
     });
     
   } catch (error) {
