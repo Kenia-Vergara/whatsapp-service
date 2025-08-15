@@ -127,7 +127,7 @@ export default {
   getQRStatus() {
     const now = Date.now();
     const hasActiveQR = !!connectionState.qrData && now < connectionState.qrData.expiresAt;
-    
+
     let qrInfo = null;
     if (connectionState.qrData) {
       const timeRemaining = Math.floor((connectionState.qrData.expiresAt - now) / 1000);
@@ -169,5 +169,26 @@ export default {
       }
       throw error;
     }
+  },
+
+  getQrCode() {
+    const now = Date.now();
+    
+    // Verificar si hay QR activo y no ha expirado
+    if (!connectionState.qrData || now >= connectionState.qrData.expiresAt) {
+      return null; // No hay QR activo o ha expirado
+    }
+
+    // Calcular tiempo restante
+    const timeRemaining = Math.floor((connectionState.qrData.expiresAt - now) / 1000);
+    
+    return {
+      ...connectionState.qrData,
+      timeRemaining,
+      timeRemainingFormatted: `${Math.floor(timeRemaining / 60)}:${(timeRemaining % 60).toString().padStart(2, '0')}`,
+      percentageRemaining: Math.round((timeRemaining / 60) * 100),
+      isExpired: false,
+      age: Math.floor((now - new Date(connectionState.qrData.createdAt).getTime()) / 1000)
+    };
   }
 };

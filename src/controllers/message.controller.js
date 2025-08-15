@@ -52,19 +52,72 @@ export async function startConnection(req, res) {
 }
 
 export function getQrCode(req, res) {
-  const qrData = whatsappService.getQrCode();
-  if (qrData) {
+  try {
+    const qrData = whatsappService.getQrCode();
+    
+    if (!qrData) {
+      return res.status(404).json({
+        success: false,
+        message: 'No hay QR activo en este momento',
+        suggestion: 'Usa el endpoint /qr-request para generar un nuevo QR',
+        timestamp: new Date().toISOString(),
+        hasActiveQR: false,
+        isConnected: whatsappService.getQRStatus().isConnected
+      });
+    }
+
+    // Determinar el estado del tiempo
+    let timeStatus = 'normal';
+    let urgencyMessage = '';
+    
+    if (qrData.timeRemaining <= 10) {
+      timeStatus = 'critical';
+      urgencyMessage = '¡URGENTE! El QR expira en menos de 10 segundos';
+    } else if (qrData.timeRemaining <= 30) {
+      timeStatus = 'warning';
+      urgencyMessage = 'El QR expira pronto, considera renovarlo';
+    } else if (qrData.timeRemaining <= 45) {
+      timeStatus = 'notice';
+      urgencyMessage = 'El QR tiene poco tiempo restante';
+    }
+
     return res.json({
       success: true,
-      ...qrData,
-      message: `QR válido por ${qrData.timeRemaining} segundos más`
+      hasActiveQR: true,
+      message: `QR activo con ${qrData.timeRemaining} segundos restantes`,
+      qrInfo: {
+        image: qrData.image,
+        timeRemaining: qrData.timeRemaining,
+        timeRemainingFormatted: qrData.timeRemainingFormatted,
+        percentageRemaining: qrData.percentageRemaining,
+        timeStatus,
+        urgencyMessage,
+        expiresAt: qrData.expiresAt,
+        createdAt: qrData.createdAt,
+        age: qrData.age
+      },
+      actions: {
+        canRenew: qrData.timeRemaining <= 45,
+        shouldRenew: qrData.timeRemaining <= 30,
+        mustRenew: qrData.timeRemaining <= 10
+      },
+      timestamp: new Date().toISOString()
+    });
+    
+  } catch (error) {
+    logger.error('Error getting QR code', { 
+      userId: req.user?.userId, 
+      error: error.message 
+    });
+    
+    res.status(500).json({
+      success: false,
+      code: 'INTERNAL_ERROR',
+      message: 'Error al obtener el código QR',
+      error: error.message,
+      timestamp: new Date().toISOString()
     });
   }
-
-  return res.status(404).json({
-    success: false,
-    message: 'No hay QR disponible.',
-  });
 }
 
 // Nueva función para solicitar un nuevo QR

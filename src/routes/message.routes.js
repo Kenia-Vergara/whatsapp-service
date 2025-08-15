@@ -4,7 +4,8 @@ import {
   getStatus,
   requestNewQr,
   forceExpireQr,
-  getQrStatus
+  getQrStatus,
+  getQrCode
 } from '../controllers/message.controller.js';
 import { validateSendMessage } from '../validators/message.validator.js';
 import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.js';
@@ -15,6 +16,7 @@ router.post('/send-message', authenticateJWT, authorizeRole('admin'), validateSe
 router.get('/status', authenticateJWT, getStatus);
 router.get('/qr-status', authenticateJWT, getQrStatus);
 router.post('/qr-request', authenticateJWT, authorizeRole('admin'), requestNewQr);
+router.post('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
 router.post('/qr-expire', authenticateJWT, authorizeRole('admin'), forceExpireQr);
 
 
