@@ -1,222 +1,447 @@
-# WhatsApp Service
+# 🚀 WhatsApp Service API
 
-Servicio de WhatsApp que permite enviar mensajes usando plantillas predefinidas. **El código QR ya no se genera automáticamente al iniciar la aplicación.**
+> **Servicio profesional de WhatsApp Business API con sistema de QR inteligente y gestión avanzada de mensajes**
 
-## 🚀 Características
+[![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
+[![Express](https://img.shields.io/badge/Express-5.1+-blue.svg)](https://expressjs.com/)
+[![Baileys](https://img.shields.io/badge/Baileys-6.7+-orange.svg)](https://github.com/WhiskeySockets/Baileys)
+[![License](https://img.shields.io/badge/License-ISC-blue.svg)](LICENSE)
 
-- ✅ **Sin generación automática de QR**: El servicio no se conecta automáticamente a WhatsApp
-- 🔐 **Autenticación JWT**: Sistema de autenticación seguro
-- 📱 **Plantillas de mensajes**: Mensajes predefinidos para diferentes casos de uso
-- 📊 **Rate limiting**: Control de frecuencia para solicitudes de QR
-- 🔒 **Autorización por roles**: Diferentes niveles de acceso (admin, user)
+## 📋 Tabla de Contenidos
 
-## 📋 Requisitos
+- [✨ Características](#-características)
+- [🚀 Instalación](#-instalación)
+- [⚙️ Configuración](#️-configuración)
+- [🔧 Uso](#-uso)
+- [📡 API Endpoints](#-api-endpoints)
+- [🔐 Autenticación](#-autenticación)
+- [📱 Sistema de QR](#-sistema-de-qr)
+- [💬 Mensajería](#-mensajería)
+- [🛡️ Seguridad](#️-seguridad)
+- [📊 Monitoreo](#-monitoreo)
+- [🧪 Testing](#-testing)
+- [📦 Despliegue](#-despliegue)
+- [🤝 Contribución](#-contribución)
+- [📄 Licencia](#-licencia)
 
-- Node.js 18+
-- Cuenta de WhatsApp
-- Variables de entorno configuradas
+## ✨ Características
 
-## ⚙️ Instalación
+### 🔥 **Funcionalidades Principales**
+- 📱 **Conexión WhatsApp Business** con autenticación QR
+- 💬 **Envío de mensajes** con plantillas personalizables
+- 🔐 **Autenticación JWT** y control de roles
+- ⚡ **Rate Limiting** avanzado por usuario
+- 📊 **Monitoreo en tiempo real** del estado de conexión
 
-1. **Clonar el repositorio**
+### 🎯 **Sistema de QR Avanzado**
+- ⏰ **Gestión inteligente del tiempo** de vida del QR
+- 🚨 **Sistema de alertas** con estados de urgencia
+- 📈 **Métricas detalladas** y estadísticas de uso
+- 🎨 **Estados visuales** (Normal, Notice, Warning, Critical)
+
+### 🛡️ **Seguridad y Robustez**
+- 🔒 **Autenticación multi-nivel** (JWT + API Keys)
+- 🚫 **Rate Limiting** por usuario
+- 🧹 **Limpieza automática** de conexiones
+- 📝 **Logging completo** de eventos y errores
+- 🚨 **Manejo robusto** de errores y desconexiones
+
+## 🚀 Instalación
+
+### 📋 **Prerrequisitos**
+- Node.js 18+ 
+- npm o yarn
+- Cuenta de WhatsApp Business
+
+### 🔧 **Instalación Rápida**
+
 ```bash
-git clone <repository-url>
+# Clonar el repositorio
+git clone https://github.com/tu-usuario/whatsapp-service.git
 cd whatsapp-service
-```
 
-2. **Instalar dependencias**
-```bash
+# Instalar dependencias
 npm install
-```
 
-3. **Configurar variables de entorno**
-```bash
-cp .env.template .env
-# Editar .env con tus credenciales
-```
+# Configurar variables de entorno
+cp .env.example .env
 
-4. **Iniciar el servicio**
-```bash
+# Iniciar el servicio
 npm start
 ```
 
-## 🔌 Uso de la API
+### 📦 **Dependencias Principales**
 
-### 1. Iniciar Conexión a WhatsApp
-
-**POST** `/api/start-connection`
-
-Inicia la conexión a WhatsApp manualmente. Solo administradores pueden usar este endpoint.
-
-```bash
-curl -X POST http://localhost:5111/api/start-connection \
-  -H "Authorization: Bearer <JWT_TOKEN>" \
-  -H "Content-Type: application/json"
-```
-
-**Respuesta:**
 ```json
 {
-  "success": true,
-  "message": "Iniciando conexión a WhatsApp",
-  "timestamp": "2024-01-01T12:00:00.000Z"
+  "@whiskeysockets/baileys": "^6.7.18",
+  "express": "^5.1.0",
+  "jsonwebtoken": "^9.0.2",
+  "bcrypt": "^6.0.0",
+  "qrcode": "^1.5.4",
+  "helmet": "^8.1.0",
+  "cors": "^2.8.5"
 }
 ```
 
-### 2. Solicitar Código QR
+## ⚙️ Configuración
 
-**POST** `/api/qr-request`
+### 🏗️ **Estructura del Proyecto**
 
-Solicita un nuevo código QR para autenticarse en WhatsApp.
+```
+src/
+├── config/          # Configuraciones
+├── controllers/     # Controladores de la API
+├── middlewares/     # Middlewares personalizados
+├── models/          # Modelos de datos
+├── routes/          # Definición de rutas
+├── services/        # Lógica de negocio
+├── utils/           # Utilidades y helpers
+├── validators/      # Validación de datos
+├── app.js          # Aplicación Express
+└── templates.js    # Plantillas de mensajes
+```
+
+## 🔧 Uso
+
+### 🚀 **Iniciar el Servicio**
 
 ```bash
-curl -X POST http://localhost:5111/api/qr-request \
-  -H "Authorization: Bearer <JWT_TOKEN>" \
-  -H "Content-Type: application/json"
+# Desarrollo
+npm run dev
+
+# Producción
+npm start
+
+# Con PM2
+pm2 start ecosystem.config.js
 ```
 
-**Respuesta:**
-```json
-{
-  "success": true,
-  "message": "Solicitud de nuevo QR procesada. Se generará automáticamente.",
-  "estimatedWaitTime": "5-10 segundos",
-  "timestamp": "2024-01-01T12:00:00.000Z"
-}
-```
+### 📱 **Primera Conexión WhatsApp**
 
-### 3. Obtener Código QR
+1. **Generar QR**: `POST /api/qr-request`
+2. **Escanear QR** con tu WhatsApp
+3. **Verificar estado**: `GET /api/qr-status`
+4. **Enviar mensaje**: `POST /api/send-message`
 
-**GET** `/api/qr-code`
+## 📡 API Endpoints
 
-Obtiene el código QR actual si está disponible.
+### 🔐 **Autenticación**
 
-```bash
-curl -X GET http://localhost:5111/api/qr-code \
-  -H "Authorization: Bearer <JWT_TOKEN>"
-```
+| Método | Endpoint | Descripción | Autenticación |
+|--------|----------|-------------|---------------|
+| `POST` | `/api/auth/login` | Login de usuario | No requerida |
+| `GET` | `/api/auth/me` | Obtener usuario actual | JWT |
 
-### 4. Ver Estado de Conexión
+### 📱 **Gestión de QR**
 
-**GET** `/api/status`
+| Método | Endpoint | Descripción | Autenticación |
+|--------|----------|-------------|---------------|
+| `POST` | `/api/qr-request` | Generar nuevo QR | JWT + Admin |
+| `GET` | `/api/qr-status` | Estado del QR | JWT |
+| `POST` | `/api/qr-expire` | Expirar QR activo | JWT + Admin |
 
-Verifica el estado actual de la conexión con WhatsApp.
+### 💬 **Mensajería**
 
-```bash
-curl -X GET http://localhost:5111/api/status \
-  -H "Authorization: Bearer <JWT_TOKEN>"
-```
-
-### 5. Enviar Mensaje
-
-**POST** `/api/send-message`
-
-Envía un mensaje usando una plantilla predefinida.
-
-```bash
-curl -X POST http://localhost:5111/api/send-message \
-  -H "Authorization: Bearer <JWT_TOKEN>" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "phone": "34612345678",
-    "templateOption": "recordatorio",
-    "psicologo": "Dr. García",
-    "fecha": "15/01/2024",
-    "hora": "10:00"
-  }'
-```
+| Método | Endpoint | Descripción | Autenticación |
+|--------|----------|-------------|---------------|
+| `POST` | `/api/send-message` | Enviar mensaje | JWT + Admin |
+| `GET` | `/api/status` | Estado general | JWT |
 
 ## 🔐 Autenticación
 
-### Login
-
-**POST** `/api/auth/login`
+### 🔑 **JWT Authentication**
 
 ```bash
-curl -X POST http://localhost:5111/api/auth/login \
-  -H "Content-Type: application/json" \
-  -d '{
-    "username": "admin",
-    "password": "admin123"
-  }'
+# Header de autorización
+Authorization: Bearer <jwt_token>
+
+# Ejemplo de token
+eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 ```
 
-**Respuesta:**
+### 🎭 **Control de Roles**
+
+```javascript
+// Solo administradores pueden:
+- Generar QRs
+- Enviar mensajes
+- Expirar QRs
+- Acceder a estadísticas
+```
+
+### 🔑 **API Key Authentication**
+
+```bash
+# Para servicios externos
+X-API-Key: <api_key>
+```
+
+## 📱 Sistema de QR
+
+### 🎯 **Estados del QR**
+
+| Estado | Tiempo Restante | Color | Acción Recomendada |
+|--------|-----------------|-------|-------------------|
+| 🟢 **Normal** | >45s | Verde | Monitorear |
+| 🟡 **Notice** | ≤45s | Amarillo | Considerar renovar |
+| 🟠 **Warning** | ≤30s | Naranja | Renovar pronto |
+| 🔴 **Critical** | ≤10s | Rojo | Renovar urgentemente |
+
+### 📊 **Respuesta del Endpoint QR-Status**
+
 ```json
 {
   "success": true,
-  "token": "JWT_TOKEN_HERE",
-  "user": {
-    "username": "admin",
-    "role": "admin"
+  "hasActiveQR": true,
+  "isConnected": false,
+  "qrInfo": {
+    "timeRemaining": 42,
+    "timeRemainingFormatted": "0:42",
+    "percentageRemaining": 70,
+    "timeStatus": "notice",
+    "urgencyMessage": "El QR tiene poco tiempo restante",
+    "expiresAt": 1703123456789,
+    "createdAt": "2023-12-21T10:30:56.789Z",
+    "age": 18
+  },
+  "actions": {
+    "canRenew": true,
+    "shouldRenew": false,
+    "mustRenew": false
+  },
+  "message": "QR activo con 42 segundos restantes",
+  "timestamp": "2023-12-21T10:30:56.789Z"
+}
+```
+
+### 🔄 **Ciclo de Vida del QR**
+
+```
+1. Generación → 2. Activo (60s) → 3. Expiración → 4. Limpieza
+     ↓              ↓                ↓            ↓
+  QR Request    QR Status      Auto-Expire   Cleanup
+```
+
+### 📊 **Dashboard Recomendado**
+
+- **Grafana**: Métricas en tiempo real
+- **Prometheus**: Recopilación de datos
+- **Elasticsearch**: Búsqueda de logs
+- **Kibana**: Visualización de datos
+
+## 💬 Mensajería
+
+### 📝 **Plantillas de Mensajes**
+
+```javascript
+// Ejemplo de plantilla
+{
+  "appointment": {
+    "text": "Hola, tienes una cita con {nombrePsicologo} el {fecha} a las {hora}",
+    "variables": ["nombrePsicologo", "fecha", "hora"]
   }
 }
 ```
 
-## 📱 Flujo de Uso
-
-1. **Iniciar el servicio** - El servicio se inicia sin conectarse a WhatsApp
-2. **Autenticarse** - Obtener JWT token mediante login
-3. **Iniciar conexión** - Llamar a `/api/start-connection` para conectar con WhatsApp
-4. **Solicitar QR** - Llamar a `/api/qr-request` para generar código QR
-5. **Obtener QR** - Llamar a `/api/qr-code` para obtener el código QR
-6. **Escanear QR** - Usar WhatsApp para escanear el código
-7. **Enviar mensajes** - Una vez conectado, usar `/api/send-message`
-
-## ⚠️ Limitaciones de Rate Limiting
-
-- **Máximo 10 QR por hora** por usuario
-- **Mínimo 30 segundos** entre solicitudes de QR
-- **QR expira en 1 minuto** por seguridad
-
-## 🐳 Docker
+### 📱 **Envío de Mensajes**
 
 ```bash
-# Construir imagen
-docker build -t whatsapp-service .
-
-# Ejecutar contenedor
-docker run -p 5111:5111 --env-file .env whatsapp-service
+POST /api/send-message
+{
+  "phone": "34612345678",
+  "templateOption": "appointment",
+  "psicologo": "Dr. García",
+  "fecha": "15/01/2024",
+  "hora": "10:00"
+}
 ```
 
-## 🔧 Variables de Entorno
+### ✅ **Validaciones**
 
-```env
-# Puerto del servidor
-PORT=5111
+- ✅ Formato de teléfono internacional
+- ✅ Plantilla válida
+- ✅ Variables requeridas completas
+- ✅ Conexión WhatsApp activa
 
-# Credenciales de usuario
-USER_USERNAME=usuario
-USER_PASSWORD=usuario123
-USER_ROLE=user
+## 🛡️ Seguridad
 
-# Credenciales de administrador
-ADMIN_USERNAME=admin
-ADMIN_PASSWORD=admin123
-ADMIN_ROLE=admin
+### 🔒 **Medidas de Seguridad**
 
-# JWT Secret
-JWT_SECRET=tu_jwt_secret_aqui
+- **Helmet.js**: Headers de seguridad HTTP
+- **CORS**: Control de acceso por origen
+- **Rate Limiting**: Protección contra spam
+- **JWT**: Autenticación stateless segura
+- **API Keys**: Autenticación para servicios
+- **Validación**: Sanitización de inputs
+
+### 🚫 **Rate Limiting**
+
+```javascript
+// Configuración por defecto
+{
+  windowMs: 15 * 60 * 1000, // 15 minutos
+  max: 100,                  // 100 requests por ventana
+  standardHeaders: true,
+  legacyHeaders: false
+}
 ```
 
-## 📝 Notas Importantes
+### 📝 **Logging de Seguridad**
 
-- **El servicio NO se conecta automáticamente** a WhatsApp al iniciar
-- **Siempre debes llamar a `/api/start-connection`** antes de solicitar un QR
-- **Los códigos QR expiran por seguridad** después de 1 minuto
-- **Solo administradores** pueden iniciar conexiones y solicitar QR
-- **El servicio no reconecta automáticamente** si se pierde la conexión
+- Intentos de login fallidos
+- Accesos no autorizados
+- Rate limit excedido
+- Errores de autenticación
 
-## 🚨 Solución de Problemas
+## 📊 Monitoreo
 
-### Error: "WhatsApp no está conectado"
-- Asegúrate de haber llamado a `/api/start-connection` primero
-- Verifica que el QR haya sido escaneado correctamente
+### 📈 **Métricas Disponibles**
 
-### Error: "Rate limit excedido"
-- Espera el tiempo indicado antes de solicitar otro QR
-- Revisa las estadísticas con `/api/qr-stats`
+- Estado de conexión WhatsApp
+- Tiempo de vida del QR
+- Estadísticas de mensajes enviados
+- Uso de rate limiting
+- Errores y excepciones
 
-### Error: "QR expirado"
-- Solicita un nuevo QR con `/api/qr-request`
-- Los QR expiran automáticamente por seguridad
+### 🔍 **Logs Estructurados**
+
+```json
+{
+  "timestamp": "2023-12-21T10:30:56.789Z",
+  "level": "INFO",
+  "module": "WHATSAPP_SERVICE",
+  "message": "QR generated successfully",
+  "userId": "user123",
+  "qrExpiresAt": 1703123456789
+}
+```
+
+## 🧪 Testing
+
+### 🧪 **Tests Unitarios**
+
+```bash
+# Ejecutar tests
+npm test
+
+# Tests con coverage
+npm run test:coverage
+
+# Tests en modo watch
+npm run test:watch
+```
+
+### 🔍 **Tests de Integración**
+
+```bash
+# Tests de API
+npm run test:integration
+
+# Tests de servicios
+npm run test:services
+```
+
+### 📊 **Coverage Mínimo**
+
+- **Líneas**: 90%
+- **Funciones**: 95%
+- **Branches**: 85%
+
+## 📦 Despliegue
+
+### 🐳 **Docker**
+
+```dockerfile
+# Dockerfile
+FROM node:18-alpine
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+EXPOSE 3000
+CMD ["npm", "start"]
+```
+
+### 🚀 **Docker Compose**
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  whatsapp-service:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./auth_info:/app/auth_info
+```
+
+### ☁️ **Despliegue en la Nube**
+
+#### **Heroku**
+```bash
+heroku create whatsapp-service
+git push heroku main
+```
+
+#### **AWS ECS**
+```bash
+aws ecs create-service --cluster my-cluster --service-name whatsapp-service
+```
+
+#### **Google Cloud Run**
+```bash
+gcloud run deploy whatsapp-service --source .
+```
+
+### 🔧 **Variables de Producción**
+
+```bash
+NODE_ENV=production
+PORT=3000
+JWT_SECRET=secret_super_seguro_produccion
+API_KEY=api_key_produccion
+```
+
+## 🤝 Contribución
+
+### 📋 **Cómo Contribuir**
+
+1. **Fork** el proyecto
+2. **Crea** una rama para tu feature (`git checkout -b feature/AmazingFeature`)
+3. **Commit** tus cambios (`git commit -m 'Add some AmazingFeature'`)
+4. **Push** a la rama (`git push origin feature/AmazingFeature`)
+5. **Abre** un Pull Request
+
+### 🎯 **Estándares de Código**
+
+- **ESLint**: Configuración estándar
+- **Prettier**: Formateo automático
+- **Conventional Commits**: Formato de commits
+- **TypeScript**: Tipado opcional
+
+## 📄 Licencia
+
+Este proyecto está bajo la Licencia ISC. Ver el archivo [LICENSE](LICENSE) para más detalles.
+
+## 🙏 **Agradecimientos**
+
+- **Baileys**: Librería principal de WhatsApp
+- **Express**: Framework web
+- **Comunidad**: Contribuidores y usuarios
+- **Colaboradores**: Contribuidores de código
+
+<div align="center">
+
+**⭐ ¿Te gustó el proyecto? ¡Dale una estrella en GitHub! ⭐**
+
+**🚀 Desarrollado con ❤️ por Sstoledo**
+
+[![GitHub](https://img.shields.io/badge/GitHub-100000?style=for-the-badge&logo=github&logoColor=white)](https://github.com/sstoledo)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-0077B5?style=for-the-badge&logo=linkedin&logoColor=white)](https://linkedin.com/in/sandro-adrian-toledo-medina-5783892a9/)
+
+</div>
+
