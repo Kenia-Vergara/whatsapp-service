@@ -13,10 +13,10 @@ import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.j
 const router = Router();
 
 router.post('/send-message', authenticateJWT, authorizeRole('admin'), validateSendMessage, sendMessage);
+router.get('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
 router.get('/status', authenticateJWT, getStatus);
 router.get('/qr-status', authenticateJWT, getQrStatus);
 router.post('/qr-request', authenticateJWT, authorizeRole('admin'), requestNewQr);
-router.post('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
 router.post('/qr-expire', authenticateJWT, authorizeRole('admin'), forceExpireQr);
 
 
