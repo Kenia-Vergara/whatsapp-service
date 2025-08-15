@@ -115,7 +115,7 @@ export async function requestNewQr(req, res) {
     
     res.json({
       success: true,
-      qr: result.qr,
+      message: 'Codigo qr creado',
       expiresAt: Math.floor((result.expiresAt - Date.now()) / 1000),
     });
   } catch (error) {
