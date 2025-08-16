@@ -14,39 +14,23 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: [
+      'https://websitewebsitennect.website'
+    ],
     methods: ["GET", "POST"]
   }
 });
 
 app.use(helmet());
 
-// Configurar orígenes permitidos desde variable de entorno
-const allowedOrigins = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',')
-  : [
-      'http://localhost:3000',
-      'http://localhost:5173'
-    ];
-
-const corsOptions = {
-  origin: function (origin, callback) {
-    // Permitir requests sin origin (mobile apps, etc.)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) !== -1) {
-      callback(null, true);
-    } else {
-      console.warn('Blocked by CORS:', origin);
-      callback(new Error('Not allowed by CORS'));
-    }
-  },
+app.use(cors({
+  origin: [
+    'https://websitewebsitennect.website'
+  ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
-};
-
-app.use(cors(corsOptions));
+}));
 
 
 
@@ -75,44 +59,44 @@ app.use('/api', messageRoutes);
 // WebSocket para QR status
 io.on('connection', (socket) => {
   console.log('Cliente conectado:', socket.id);
-  
+
   // Verificar autenticación del token
   const token = socket.handshake.auth.token;
   if (!token) {
     socket.disconnect();
     return;
   }
-  
+
   // Verificar JWT
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
       socket.disconnect();
       return;
     }
-    
+
     // Guardar información del usuario en el socket
     socket.userId = decoded.userId;
     socket.user = decoded;
-    
+
     // Enviar estado inicial del QR
     const qrStatus = whatsappService.getQRStatus();
     socket.emit('qr-status-update', qrStatus);
-    
+
     console.log('Usuario autenticado:', decoded.username);
   });
-  
+
   // Unirse a la sala del usuario
   socket.on('join-user', (userId) => {
     socket.join(`user-${userId}`);
     console.log(`Usuario ${userId} se unió a su sala`);
   });
-  
+
   // Solicitar estado inicial
   socket.on('get-initial-status', () => {
     const qrStatus = whatsappService.getQRStatus();
     socket.emit('qr-status-update', qrStatus);
   });
-  
+
   socket.on('disconnect', () => {
     console.log('Cliente desconectado:', socket.userId);
   });
