@@ -2,6 +2,7 @@ import { makeWASocket, useMultiFileAuthState } from '@whiskeysockets/baileys';
 import QRCode from 'qrcode';
 import { getTemplate } from '../templates.js';
 import logger from '../utils/logger.js';
+import { emitQrStatusUpdate } from '../app.js';
 
 // Estado centralizado
 const connectionState = {
@@ -190,5 +191,10 @@ export default {
       isExpired: false,
       age: Math.floor((now - new Date(connectionState.qrData.createdAt).getTime()) / 1000)
     };
+  },
+
+  updateQrStatus() {
+    const status = this.getQRStatus();
+    emitQrStatusUpdate(status);
   }
 };
