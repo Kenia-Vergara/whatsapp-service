@@ -55,10 +55,9 @@ export function getStatus(req, res) {
 
 export function getQrStatus(req, res) {
   try {
-    const qrStatus = whatsappService.getQrStatus();
+    const qrStatus = whatsappService.getQRStatus();
     res.json({
       success: true,
-      connected: whatsappService.isConnected(),
       ...qrStatus,
       timestamp: new Date().toISOString(),
     });
