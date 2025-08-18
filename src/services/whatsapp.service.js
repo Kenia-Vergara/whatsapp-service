@@ -18,10 +18,23 @@ async function createNewSession() {
 
   const sock = makeWASocket({
     auth: state,
-    printQRInTerminal: false,
-    connectTimeoutMs: 20000
+    printQRInTerminal: true,
+    connectTimeoutMs: 60_000,
+    browser: ["MyApp", "Chrome", "1.0.0"],  // Evita baneos
+    keepAliveIntervalMs: 20_000,  // Mantiene la conexión activa
+    markOnlineOnConnect: false,    // Reduce detección de automation
+    syncFullHistory: false,        // Evita cargar historial
   });
 
+  sock.ev.on('connection.update', (update) => {
+    if (update.connection === 'close') {
+      logger.error('Conexión cerrada', {
+        reason: update.lastDisconnect?.error?.message
+      });
+      // Forzar reinicio
+      setTimeout(() => this.requestQR('system'), 5000);
+    }
+  });
   sock.ev.on('creds.update', saveCreds);
   return sock;
 }
@@ -174,7 +187,7 @@ export default {
 
   getQrCode() {
     const now = Date.now();
-    
+
     // Verificar si hay QR activo y no ha expirado
     if (!connectionState.qrData || now >= connectionState.qrData.expiresAt) {
       return null; // No hay QR activo o ha expirado
@@ -182,7 +195,7 @@ export default {
 
     // Calcular tiempo restante
     const timeRemaining = Math.floor((connectionState.qrData.expiresAt - now) / 1000);
-    
+
     return {
       ...connectionState.qrData,
       timeRemaining,
