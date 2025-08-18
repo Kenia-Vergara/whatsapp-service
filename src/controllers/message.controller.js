@@ -1,5 +1,8 @@
 import whatsappService from "../services/whatsapp.service.js";
 
+const fs = require('fs');
+const path = require('path');
+
 export async function sendMessage(req, res) {
   try {
     const { phone, templateOption, psicologo, fecha, hora } = req.body;
@@ -293,4 +296,17 @@ export async function restartConnection(req, res) {
       timestamp: new Date().toISOString(),
     });
   }
+}
+
+
+export function resetAuth(req, res) {
+  // logica para eliminar la carpeta auth_info alojada en la raiz a nivel de src y node_modules
+  const rutaCarpeta = path.resolve(__dirname, 'auth_info');
+  fs.rm(rutaCarpeta, { recursive: true, force: true }, (err) => {
+    if (err) {
+      console.error(`Error eliminando la carpeta ${rutaCarpeta}:`, err);
+    } else {
+      console.log(`Carpeta ${rutaCarpeta} eliminada correctamente.`);
+    }
+  });
 }
