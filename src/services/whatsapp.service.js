@@ -26,15 +26,6 @@ async function createNewSession() {
     syncFullHistory: false,        // Evita cargar historial
   });
 
-  sock.ev.on('connection.update', (update) => {
-    if (update.connection === 'close') {
-      logger.error('Conexión cerrada', {
-        reason: update.lastDisconnect?.error?.message
-      });
-      // Forzar reinicio
-      setTimeout(() => this.requestQR('system'), 5000);
-    }
-  });
   sock.ev.on('creds.update', saveCreds);
   return sock;
 }
@@ -132,10 +123,16 @@ export default {
     }
   },
 
-  async expireQR() {
-    const hadActiveQR = !!connectionState.qrData;
-    await cleanupConnection();
-    return hadActiveQR;
+  async expireQR(reason, userId) {
+    logger.info('Expiring QR code', { reason, userId });
+
+    if (connectionState.qrData) {
+      // Marcar el QR como expirado sin cerrar la conexión
+      connectionState.qrData.expiresAt = Date.now();
+      this.updateQrStatus();
+      return true;
+    }
+    return false;
   },
 
   getQRStatus() {
