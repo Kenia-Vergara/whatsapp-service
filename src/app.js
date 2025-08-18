@@ -6,17 +6,20 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import messageRoutes from './routes/message.routes.js';
 import authRoutes from './routes/auth.routes.js';
-import { apiKeyAuth } from './middlewares/auth.middleware.js';
 import jwt from 'jsonwebtoken';
 import whatsappService from './services/whatsapp.service.js';
+import 'dotenv/config';
+
+// Procesa ALLOWED_ORIGINS (separado por comas) o usa localhost por defecto
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
+  ? process.env.ALLOWED_ORIGINS.split(',') 
+  : ['http://localhost:3000'];
 
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      'http://localhost:3000', '*'
-    ],
+    origin: ALLOWED_ORIGINS,
     methods: ["GET", "POST"]
   }
 });
@@ -24,9 +27,7 @@ const io = new Server(server, {
 app.use(helmet());
 
 app.use(cors({
-  origin: [
-    'http://localhost:3000', '*'
-  ],
+  origin: ALLOWED_ORIGINS,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
