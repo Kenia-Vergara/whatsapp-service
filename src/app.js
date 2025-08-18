@@ -15,7 +15,7 @@ const server = createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      'https://websitewebsitennect.website'
+      'http://localhost:3000', '*'
     ],
     methods: ["GET", "POST"]
   }
@@ -25,7 +25,7 @@ app.use(helmet());
 
 app.use(cors({
   origin: [
-    'https://websitewebsitennect.website'
+    'http://localhost:3000', '*'
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -63,6 +63,7 @@ io.on('connection', (socket) => {
   // Verificar autenticación del token
   const token = socket.handshake.auth.token;
   if (!token) {
+    console.log('Se desconecto por que no hay token');
     socket.disconnect();
     return;
   }
@@ -70,6 +71,7 @@ io.on('connection', (socket) => {
   // Verificar JWT
   jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
     if (err) {
+      console.log('Se desconecto por que la verificacion del token es falsa');
       socket.disconnect();
       return;
     }
