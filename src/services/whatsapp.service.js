@@ -79,7 +79,7 @@ export default {
       const userHistory = connectionState.userConnections.get(userId) || [];
       const recentAttempts = userHistory.filter(t => now - t < 3600000).length;
 
-      if (recentAttempts >= 10) {
+      if (recentAttempts >= 100) {
         throw {
           code: 'RATE_LIMITED',
           message: 'Límite de solicitudes alcanzado',
@@ -95,7 +95,7 @@ export default {
 
       connectionState.qrData = {
         image: qrImage,
-        expiresAt: Date.now() + 60000,
+        expiresAt: Date.now() + (60000 * 3),
         createdAt: new Date().toISOString()
       };
 
