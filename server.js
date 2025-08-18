@@ -1,4 +1,4 @@
-import { getTemplate } from './templates.js';
+import { getTemplate } from './src/templates.js';
 import { makeWASocket, DisconnectReason, useMultiFileAuthState } from '@whiskeysockets/baileys';
 import qrcode from 'qrcode-terminal';
 import express from 'express';
