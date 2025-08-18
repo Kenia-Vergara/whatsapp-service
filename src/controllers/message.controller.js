@@ -1,7 +1,7 @@
 import whatsappService from "../services/whatsapp.service.js";
 
-const fs = require('fs');
-const path = require('path');
+import fs from 'fs';
+import path from 'path';
 
 export async function sendMessage(req, res) {
   try {
