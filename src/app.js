@@ -13,7 +13,7 @@ import 'dotenv/config';
 // Procesa ALLOWED_ORIGINS (separado por comas) o usa localhost por defecto
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
   ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ['http://localhost:3000'];
+  : ['http://localhost:3000','http://localhost:3001'];
 
 const app = express();
 const server = createServer(app);
