@@ -146,10 +146,14 @@ export async function requestNewQr(req, res) {
     const result = await whatsappService.requestQR(userId);
 
     if (result.success) {
+      // Obtener el estado actual después de procesar la solicitud
+      const currentStatus = whatsappService.getQRStatus();
+      
       res.json({
         success: true,
         message: result.message,
-        estimatedWaitTime: result.estimatedWaitTime,
+        status: result.status,
+        currentStatus: currentStatus,
         timestamp: new Date().toISOString(),
       });
     } else {
@@ -177,10 +181,10 @@ export async function requestNewQr(req, res) {
       });
     }
   } catch (error) {
-    console.error("Error al solicitar nuevo QR:", error);
+    console.error('Error al solicitar nuevo QR:', error);
     res.status(500).json({
       success: false,
-      message: "Error interno del servidor",
+      message: 'Error interno del servidor',
       error: error.message,
       timestamp: new Date().toISOString(),
     });
@@ -300,13 +304,170 @@ export async function restartConnection(req, res) {
 
 
 export function resetAuth(req, res) {
-  // logica para eliminar la carpeta auth_info alojada en la raiz a nivel de src y node_modules
-  const rutaCarpeta = path.resolve(__dirname, 'auth_info');
-  fs.rm(rutaCarpeta, { recursive: true, force: true }, (err) => {
-    if (err) {
-      console.error(`Error eliminando la carpeta ${rutaCarpeta}:`, err);
-    } else {
-      console.log(`Carpeta ${rutaCarpeta} eliminada correctamente.`);
+  try {
+    const authPath = path.resolve(__dirname, 'auth_info');
+    
+    if (!fs.existsSync(authPath)) {
+      return res.json({
+        success: true,
+        message: 'La carpeta auth_info no existe',
+        timestamp: new Date().toISOString(),
+      });
     }
-  });
+
+    // Verificar que sea un directorio
+    const stats = fs.statSync(authPath);
+    if (!stats.isDirectory()) {
+      return res.status(400).json({
+        success: false,
+        message: 'La ruta auth_info no es un directorio',
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    // Eliminar la carpeta de forma recursiva
+    fs.rm(authPath, { recursive: true, force: true }, (err) => {
+      if (err) {
+        console.error(`Error eliminando la carpeta ${authPath}:`, err);
+        return res.status(500).json({
+          success: false,
+          message: 'Error al eliminar la carpeta auth_info',
+          error: err.message,
+          timestamp: new Date().toISOString(),
+        });
+      } else {
+        console.log(`Carpeta ${authPath} eliminada correctamente.`);
+        return res.json({
+          success: true,
+          message: 'Carpeta auth_info eliminada correctamente',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+  } catch (error) {
+    console.error('Error en resetAuth:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error interno del servidor',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// Función para obtener historial de mensajes enviados
+export function getSentMessages(req, res) {
+  try {
+    const sentMessages = whatsappService.getSentMessages();
+    
+    res.json({
+      success: true,
+      messages: sentMessages,
+      total: sentMessages.length,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error obteniendo historial de mensajes:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error obteniendo historial de mensajes",
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// Función para verificar el estado de la carpeta auth_info
+export function checkAuthStatus(req, res) {
+  try {
+    const authPath = path.resolve(__dirname, 'auth_info');
+    const authExists = fs.existsSync(authPath);
+    
+    let authDetails = null;
+    if (authExists) {
+      try {
+        const stats = fs.statSync(authPath);
+        authDetails = {
+          exists: true,
+          isDirectory: stats.isDirectory(),
+          size: stats.size,
+          created: stats.birthtime,
+          modified: stats.mtime,
+          path: authPath
+        };
+      } catch (error) {
+        authDetails = {
+          exists: true,
+          error: error.message
+        };
+      }
+    }
+
+    res.json({
+      success: true,
+      authStatus: {
+        exists: authExists,
+        details: authDetails
+      },
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error("Error verificando estado de auth:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error verificando estado de auth",
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// Función para forzar reconexión manual
+export async function forceReconnect(req, res) {
+  try {
+    const userId = req.user.id;
+    console.log('Usuario solicitando reconexión manual', { userId });
+
+    await whatsappService.forceReconnect();
+    
+    res.json({
+      success: true,
+      message: 'Reconexión iniciada manualmente',
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error en reconexión manual', { 
+      userId: req.user.id, 
+      error: error.message 
+    });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error al iniciar reconexión manual',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// Función para obtener estado de reconexión
+export function getReconnectionStatus(req, res) {
+  try {
+    const status = whatsappService.getReconnectionStatus();
+    
+    res.json({
+      success: true,
+      reconnectionStatus: status,
+      timestamp: new Date().toISOString(),
+    });
+  } catch (error) {
+    console.error('Error obteniendo estado de reconexión', { error: error.message });
+    
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estado de reconexión',
+      error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
 }
