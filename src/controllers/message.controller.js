@@ -1,7 +1,10 @@
 import whatsappService from "../services/whatsapp.service.js";
-
+import { fileURLToPath } from 'url';
 import fs from 'fs';
 import path from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 export async function sendMessage(req, res) {
   try {
@@ -148,7 +151,7 @@ export async function requestNewQr(req, res) {
     if (result.success) {
       // Obtener el estado actual después de procesar la solicitud
       const currentStatus = whatsappService.getQRStatus();
-      
+
       res.json({
         success: true,
         message: result.message,
@@ -305,15 +308,7 @@ export async function restartConnection(req, res) {
 
 export function resetAuth(req, res) {
   try {
-    const authPath = path.resolve(__dirname, 'auth_info');
-    
-    if (!fs.existsSync(authPath)) {
-      return res.json({
-        success: true,
-        message: 'La carpeta auth_info no existe',
-        timestamp: new Date().toISOString(),
-      });
-    }
+    const authPath = path.resolve(__dirname, '..', '..', 'auth_info');
 
     // Verificar que sea un directorio
     const stats = fs.statSync(authPath);
@@ -359,7 +354,7 @@ export function resetAuth(req, res) {
 export function getSentMessages(req, res) {
   try {
     const sentMessages = whatsappService.getSentMessages();
-    
+
     res.json({
       success: true,
       messages: sentMessages,
@@ -380,9 +375,9 @@ export function getSentMessages(req, res) {
 // Función para verificar el estado de la carpeta auth_info
 export function checkAuthStatus(req, res) {
   try {
-    const authPath = path.resolve(__dirname, 'auth_info');
+    const authPath = path.resolve(__dirname, '..', '..', 'auth_info');
     const authExists = fs.existsSync(authPath);
-    
+
     let authDetails = null;
     if (authExists) {
       try {
@@ -405,6 +400,7 @@ export function checkAuthStatus(req, res) {
 
     res.json({
       success: true,
+      path: authPath,
       authStatus: {
         exists: authExists,
         details: authDetails
@@ -429,18 +425,18 @@ export async function forceReconnect(req, res) {
     console.log('Usuario solicitando reconexión manual', { userId });
 
     await whatsappService.forceReconnect();
-    
+
     res.json({
       success: true,
       message: 'Reconexión iniciada manualmente',
       timestamp: new Date().toISOString(),
     });
   } catch (error) {
-    console.error('Error en reconexión manual', { 
-      userId: req.user.id, 
-      error: error.message 
+    console.error('Error en reconexión manual', {
+      userId: req.user.id,
+      error: error.message
     });
-    
+
     res.status(500).json({
       success: false,
       message: 'Error al iniciar reconexión manual',
@@ -454,7 +450,7 @@ export async function forceReconnect(req, res) {
 export function getReconnectionStatus(req, res) {
   try {
     const status = whatsappService.getReconnectionStatus();
-    
+
     res.json({
       success: true,
       reconnectionStatus: status,
@@ -462,7 +458,7 @@ export function getReconnectionStatus(req, res) {
     });
   } catch (error) {
     console.error('Error obteniendo estado de reconexión', { error: error.message });
-    
+
     res.status(500).json({
       success: false,
       message: 'Error al obtener estado de reconexión',
