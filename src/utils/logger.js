@@ -19,6 +19,10 @@ class Logger {
     this.log('INFO', message, data);
   }
 
+  warn(message, data = {}) {
+    this.log('WARN', message, data);
+  }
+
   error(message, data = {}) {
     this.log('ERROR', message, data);
   }
