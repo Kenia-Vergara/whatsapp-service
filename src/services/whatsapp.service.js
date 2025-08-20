@@ -7,23 +7,23 @@ import { getWhatsAppConfig } from '../config/whatsapp.config.js';
 
 // Manejo de errores global para evitar que el proceso se cierre
 process.on('uncaughtException', (error) => {
-  logger.error('Uncaught Exception:', { 
-    error: error.message, 
+  logger.error('Uncaught Exception:', {
+    error: error.message,
     stack: error.stack,
     timestamp: new Date().toISOString()
   });
-  
+
   // No cerrar el proceso, solo loggear el error
   console.error('❌ Uncaught Exception:', error.message);
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  logger.error('Unhandled Rejection:', { 
-    reason: reason?.message || reason, 
+  logger.error('Unhandled Rejection:', {
+    reason: reason?.message || reason,
     promise: promise,
     timestamp: new Date().toISOString()
   });
-  
+
   // No cerrar el proceso, solo loggear el error
   console.error('❌ Unhandled Rejection:', reason);
 });
@@ -52,7 +52,7 @@ async function cleanupConnection() {
         if (connectionState.socket.ev) {
           connectionState.socket.ev.removeAllListeners();
         }
-        
+
         await connectionState.socket.end();
         logger.info('Connection closed successfully');
       } catch (error) {
@@ -107,7 +107,7 @@ async function generateQRFromUpdate(qrString) {
   try {
     // Generar QR en formato PNG optimizado para mejor compatibilidad
     const qrResult = await generateOptimalQR(qrString, 'PNG');
-    
+
     connectionState.qrData = {
       image: qrResult.image,
       expiresAt: Date.now() + (60000 * 2), // 2 minutos
@@ -125,9 +125,9 @@ async function generateQRFromUpdate(qrString) {
     } catch (emitError) {
       logger.error('Error emitting QR status update', { error: emitError.message });
     }
-    
-    logger.info('QR generated from connection update', { 
-      format: qrResult.format, 
+
+    logger.info('QR generated from connection update', {
+      format: qrResult.format,
       size: qrResult.size,
       mimeType: qrResult.mimeType,
       fallback: qrResult.fallback || false
@@ -143,7 +143,7 @@ async function generateNewQR(session) {
     try {
       const config = getWhatsAppConfig();
       const qrTimeout = config.stability?.qrTimeout || 15000;
-      
+
       const timeoutId = setTimeout(() => {
         try {
           session.ev.off('connection.update', qrHandler);
@@ -158,7 +158,7 @@ async function generateNewQR(session) {
           try {
             clearTimeout(timeoutId);
             session.ev.off('connection.update', qrHandler);
-            
+
             // Generar QR en formato PNG optimizado
             generateOptimalQR(update.qr, 'PNG')
               .then(qrResult => {
@@ -199,10 +199,10 @@ async function generateNewQR(session) {
 async function attemptReconnect() {
   const config = getWhatsAppConfig();
   const maxAttempts = config.stability?.maxReconnectAttempts || 5;
-  
+
   // CORREGIDO: Verificar correctamente el límite de intentos
   if (connectionState.isReconnecting || connectionState.reconnectAttempts >= maxAttempts) {
-    logger.warn('Max reconnection attempts reached or already reconnecting', { 
+    logger.warn('Max reconnection attempts reached or already reconnecting', {
       attempts: connectionState.reconnectAttempts,
       maxAttempts: maxAttempts,
       isReconnecting: connectionState.isReconnecting
@@ -217,29 +217,29 @@ async function attemptReconnect() {
   connectionState.isReconnecting = true;
   connectionState.reconnectTimer = setTimeout(async () => {
     try {
-      logger.info('Attempting automatic reconnection', { 
+      logger.info('Attempting automatic reconnection', {
         attempt: connectionState.reconnectAttempts + 1,
         maxAttempts: maxAttempts
       });
 
       connectionState.reconnectAttempts++;
       connectionState.connectionStatus = 'connecting';
-      
+
       await cleanupConnection();
       connectionState.socket = await createNewSession();
-      
+
       logger.info('Reconnection successful');
       connectionState.reconnectAttempts = 0;
       connectionState.isReconnecting = false;
-      
+
     } catch (error) {
-      logger.error('Reconnection failed', { 
+      logger.error('Reconnection failed', {
         error: error.message,
         attempt: connectionState.reconnectAttempts
       });
-      
+
       connectionState.isReconnecting = false;
-      
+
       // Intentar de nuevo si no se alcanzó el límite
       if (connectionState.reconnectAttempts < maxAttempts) {
         attemptReconnect();
@@ -251,8 +251,8 @@ async function attemptReconnect() {
 // Función para manejar errores de stream específicamente
 function handleStreamError(error, update) {
   const config = getWhatsAppConfig();
-  
-  logger.warn('Stream error detected', { 
+
+  logger.warn('Stream error detected', {
     error: error.message,
     code: update?.lastDisconnect?.error?.data?.attrs?.code,
     statusCode: update?.lastDisconnect?.statusCode
@@ -260,15 +260,15 @@ function handleStreamError(error, update) {
 
   // Si es un error de stream que requiere restart (código 515)
   if (update?.lastDisconnect?.error?.data?.attrs?.code === '515' ||
-      error.message?.includes('Stream Errored') ||
-      update?.lastDisconnect?.error?.message?.includes('restart required')) {
-    
+    error.message?.includes('Stream Errored') ||
+    update?.lastDisconnect?.error?.message?.includes('restart required')) {
+
     logger.info('Stream error requires restart, attempting reconnection');
-    
+
     // Limpiar estado actual
     connectionState.connectionStatus = 'disconnected';
     connectionState.isConnecting = false;
-    
+
     // Intentar reconexión automática
     if (config.stability?.autoReconnect !== false) {
       attemptReconnect();
@@ -308,16 +308,16 @@ async function createNewSession() {
     });
 
     sock.ev.on('creds.update', saveCreds);
-    
+
     // Configurar event handlers para mejor manejo de conexión
     sock.ev.on('connection.update', (update) => {
       try {
-        logger.info('Connection update', { 
+        logger.info('Connection update', {
           connection: update.connection,
           lastDisconnect: update.lastDisconnect,
           qr: update.qr ? 'present' : 'absent'
         });
-        
+
         // Manejar cambios de estado de conexión
         if (update.connection === 'connecting') {
           connectionState.connectionStatus = 'connecting';
@@ -331,7 +331,7 @@ async function createNewSession() {
           connectionState.reconnectAttempts = 0;
           connectionState.isReconnecting = false;
           logger.info('WhatsApp connected successfully');
-          
+
           try {
             emitQrStatusUpdate(getQRStatus());
           } catch (emitError) {
@@ -340,19 +340,19 @@ async function createNewSession() {
         } else if (update.connection === 'close') {
           connectionState.connectionStatus = 'disconnected';
           connectionState.isConnecting = false;
-          
-          logger.warn('Connection closed', { 
+
+          logger.warn('Connection closed', {
             reason: update.lastDisconnect?.error?.message || 'unknown',
             statusCode: update.lastDisconnect?.statusCode
           });
-          
+
           // Manejar errores de stream específicamente
           if (update.lastDisconnect?.error?.data?.attrs?.code === '515' ||
-              update.lastDisconnect?.error?.message?.includes('Stream Errored') ||
-              update.lastDisconnect?.error?.message?.includes('restart required')) {
+            update.lastDisconnect?.error?.message?.includes('Stream Errored') ||
+            update.lastDisconnect?.error?.message?.includes('restart required')) {
             handleStreamError(update.lastDisconnect.error, update);
           }
-          
+
           try {
             emitQrStatusUpdate(getQRStatus());
           } catch (emitError) {
@@ -382,7 +382,7 @@ async function generateOptimalQR(qrString, format = 'PNG') {
   try {
     let qrImage;
     let qrConfig;
-    
+
     switch (format.toUpperCase()) {
       case 'PNG':
         // PNG es el más compatible y estable para WhatsApp
@@ -398,7 +398,7 @@ async function generateOptimalQR(qrString, format = 'PNG') {
           errorCorrectionLevel: 'M'
         };
         break;
-        
+
       case 'JPEG':
         // JPEG como alternativa más ligera
         qrConfig = {
@@ -413,7 +413,7 @@ async function generateOptimalQR(qrString, format = 'PNG') {
           errorCorrectionLevel: 'M'
         };
         break;
-        
+
       case 'SVG':
         // SVG para máxima calidad (pero puede causar problemas de compatibilidad)
         qrConfig = {
@@ -427,7 +427,7 @@ async function generateOptimalQR(qrString, format = 'PNG') {
           errorCorrectionLevel: 'M'
         };
         break;
-        
+
       default:
         // PNG por defecto (más compatible)
         qrConfig = {
@@ -442,9 +442,9 @@ async function generateOptimalQR(qrString, format = 'PNG') {
           errorCorrectionLevel: 'M'
         };
     }
-    
+
     qrImage = await QRCode.toDataURL(qrString, qrConfig);
-    
+
     return {
       image: qrImage,
       format: format.toUpperCase(),
@@ -452,10 +452,10 @@ async function generateOptimalQR(qrString, format = 'PNG') {
       size: `${qrConfig.width}x${qrConfig.width}`,
       config: qrConfig
     };
-    
+
   } catch (error) {
     logger.error('Error generating optimal QR', { error: error.message, format });
-    
+
     // Fallback a PNG básico si falla el formato especificado
     try {
       const fallbackQR = await QRCode.toDataURL(qrString, {
@@ -463,7 +463,7 @@ async function generateOptimalQR(qrString, format = 'PNG') {
         width: 256,
         margin: 1
       });
-      
+
       return {
         image: fallbackQR,
         format: 'PNG',
@@ -507,7 +507,7 @@ export default {
 
       connectionState.isConnecting = true;
       connectionState.connectionStatus = 'connecting';
-      
+
       try {
         await cleanupConnection();
       } catch (cleanupError) {
@@ -524,12 +524,12 @@ export default {
           error: sessionError.message
         };
       }
-      
+
       // Esperar menos tiempo para que se genere el QR automáticamente
       let qrGenerated = false;
       const config = getWhatsAppConfig();
       const forceQrDelay = config.stability?.qrTimeout ? Math.floor(config.stability.qrTimeout / 5) : 3000;
-      
+
       setTimeout(() => {
         try {
           if (!connectionState.qrData && !qrGenerated) {
@@ -556,7 +556,7 @@ export default {
 
       return {
         success: true,
-        message: `Solicitud de QR procesada. El QR se generará automáticamente en ${forceQrDelay/1000} segundos.`,
+        message: `Solicitud de QR procesada. El QR se generará automáticamente en ${forceQrDelay / 1000} segundos.`,
         status: 'processing',
         estimatedTime: forceQrDelay
       };
@@ -607,11 +607,11 @@ export default {
     }
 
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
-    
-    const messageText = getTemplate(templateOption, { 
-      nombrePsicologo: psicologo, 
-      fecha, 
-      hora 
+
+    const messageText = getTemplate(templateOption, {
+      nombrePsicologo: psicologo,
+      fecha,
+      hora
     });
 
     if (!messageText) {
@@ -649,14 +649,14 @@ export default {
       };
 
       connectionState.sentMessages.push(sentMessage);
-      
+
       const config = getWhatsAppConfig();
       if (connectionState.sentMessages.length > (config.messages?.maxHistorySize || 100)) {
         connectionState.sentMessages = connectionState.sentMessages.slice(-(config.messages?.maxHistorySize || 100));
       }
 
-      return { 
-        success: true, 
+      return {
+        success: true,
         messageId: result.key.id,
         phone: formattedPhone,
         template: templateOption,
@@ -692,14 +692,180 @@ export default {
     }
   },
 
+  async sendMessageWithImage({ imageData, phone, caption }) {
+    if (!connectionState.socket?.user) {
+      throw new Error('No conectado a WhatsApp. Por favor, escanea el código QR primero.');
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      throw new Error('El número de teléfono debe tener entre 10 y 15 dígitos');
+    }
+
+    const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
+
+    // Validar datos de imagen
+    if (!imageData) {
+      throw new Error('Los datos de la imagen son requeridos');
+    }
+
+    let imageBuffer;
+    try {
+      // Remover prefijo data:image si existe
+      const base64Data = imageData.replace(/^data:image\/[a-z]+;base64,/, '');
+      imageBuffer = Buffer.from(base64Data, 'base64');
+
+      // Validar tamaño de imagen (máximo 16MB para WhatsApp)
+      const maxSize = 16 * 1024 * 1024; // 16MB
+      if (imageBuffer.length > maxSize) {
+        throw new Error('La imagen es demasiado grande. El tamaño máximo es 16MB');
+      }
+    } catch (error) {
+      throw new Error('Formato de imagen base64 inválido');
+    }
+
+    try {
+      const captionText = caption || 'Imagen enviada';
+      logger.info('Enviando mensaje con imagen WhatsApp', {
+        phone: formattedPhone,
+        imageSize: imageBuffer.length,
+        captionLength: captionText.length
+      });
+
+      // Preparar mensaje con imagen
+      const messageOptions = {
+        image: imageBuffer,
+        caption: captionText,
+        jpegThumbnail: null,
+      };
+
+      const result = await connectionState.socket.sendMessage(formattedPhone, messageOptions);
+
+      logger.info('Mensaje enviado exitosamente', {
+        phone: formattedPhone,
+        messageId: result.key.id,
+        timestamp: new Date().toISOString()
+      });
+
+      const sentMessage = {
+        phone: formattedPhone,
+        messageId: result.key.id,
+        sentAt: new Date().toISOString(),
+        messagePreview: captionText.substring(0, 100) + (captionText.length > 100 ? '...' : ''),
+        type: 'image',
+        imageSize: imageBuffer.length,
+        status: 'sent'
+      };
+
+      connectionState.sentMessages.push(sentMessage);
+
+      const config = getWhatsAppConfig();
+      if (connectionState.sentMessages.length > (config.messages?.maxHistorySize || 100)) {
+        connectionState.sentMessages = connectionState.sentMessages.slice(-(config.messages?.maxHistorySize || 100));
+      }
+
+      return {
+        success: true,
+        messageId: result.key.id,
+        phone: formattedPhone,
+        sentAt: new Date().toISOString(),
+        messagePreview: captionText.substring(0, 100) + (captionText.length > 100 ? '...' : ''),
+        type: 'image',
+        imageSize: imageBuffer.length
+      };
+
+    } catch (error) {
+      logger.error('Error enviando mensaje WhatsApp', {
+        phone: formattedPhone,
+        error: error.message,
+        stack: error.stack
+      });
+
+      if (error.message.includes('disconnected')) {
+        await cleanupConnection();
+        throw new Error('Conexión perdida con WhatsApp. Por favor, escanea el código QR nuevamente.');
+      }
+
+      if (error.message.includes('not-authorized')) {
+        throw new Error('No tienes autorización para enviar mensajes a este número.');
+      }
+
+      if (error.message.includes('forbidden')) {
+        throw new Error('No se puede enviar mensajes a este número. Verifica que el número sea válido.');
+      }
+
+      if (error.message.includes('rate limit')) {
+        throw new Error('Límite de mensajes alcanzado. Espera un momento antes de enviar más mensajes.');
+      }
+
+      throw new Error(`Error al enviar mensaje: ${error.message}`);
+    }
+  },
+
+  // Función auxiliar para generar thumbnail (opcional)
+  async generateThumbnail(imageBuffer) {
+    try {
+      // Si tienes sharp instalado, puedes usar esto para generar un thumbnail
+      // const sharp = require('sharp');
+      // return await sharp(imageBuffer)
+      //   .resize(100, 100, { fit: 'cover' })
+      //   .jpeg({ quality: 50 })
+      //   .toBuffer();
+
+      // Si no tienes sharp, puedes retornar null o el buffer original redimensionado
+      return null;
+    } catch (error) {
+      logger.warn('Error generando thumbnail', { error: error.message });
+      return null;
+    }
+  },
+
+  // Función auxiliar mejorada para sendMessageWithRetry si no existe
+  async sendMessageImageWithRetry(jid, content, maxRetries = 3) {
+    let lastError;
+
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        logger.debug(`Intento ${attempt} de envío de mensaje`, { jid, attempt, maxRetries });
+
+        const result = await connectionState.socket.sendMessage(jid, content);
+
+        if (result) {
+          logger.debug('Mensaje enviado exitosamente', { jid, attempt, messageId: result.key?.id });
+          return result;
+        }
+      } catch (error) {
+        lastError = error;
+        logger.warn(`Error en intento ${attempt}`, {
+          jid,
+          attempt,
+          maxRetries,
+          error: error.message
+        });
+
+        // Si es el último intento, no esperar
+        if (attempt === maxRetries) {
+          break;
+        }
+
+        // Esperar antes del siguiente intento (backoff exponencial)
+        const delay = Math.pow(2, attempt - 1) * 1000; // 1s, 2s, 4s...
+        logger.debug(`Esperando ${delay}ms antes del siguiente intento`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+
+    throw lastError || new Error('Error desconocido al enviar mensaje');
+  },
+
   async sendMessageWithRetry(phone, messageText, maxRetries = null) {
     const config = getWhatsAppConfig();
     const retries = maxRetries || config.messages?.maxRetries || 3;
     let lastError;
-    
+
     for (let attempt = 1; attempt <= retries; attempt++) {
       try {
-        const result = await connectionState.socket.sendMessage(phone, { 
+        const result = await connectionState.socket.sendMessage(phone, {
           text: messageText,
           timestamp: Date.now()
         });
@@ -778,7 +944,7 @@ export default {
   async generateQRInFormat(qrString, format = 'PNG') {
     try {
       const qrResult = await generateOptimalQR(qrString, format);
-      logger.info('QR generated in specific format', { 
+      logger.info('QR generated in specific format', {
         format: qrResult.format,
         size: qrResult.size,
         mimeType: qrResult.mimeType
@@ -795,7 +961,7 @@ export default {
     if (!connectionState.qrData) {
       return null;
     }
-    
+
     return {
       format: connectionState.qrData.format,
       size: connectionState.qrData.size,
@@ -814,7 +980,7 @@ export default {
       }
 
       const qrResult = await generateOptimalQR(connectionState.qrData.qrString, format);
-      
+
       // Actualizar el QR existente con el nuevo formato
       connectionState.qrData = {
         ...connectionState.qrData,
@@ -832,7 +998,7 @@ export default {
         logger.error('Error emitting QR format change', { error: emitError.message });
       }
 
-      logger.info('QR format changed successfully', { 
+      logger.info('QR format changed successfully', {
         newFormat: qrResult.format,
         size: qrResult.size,
         mimeType: qrResult.mimeType
