@@ -470,10 +470,10 @@ export function getReconnectionStatus(req, res) {
 // Funcion para enviar mensajes con imagenes
 export async function sendMessageWithImage(req, res) {
   try {
-    const { imageData, phone } = req.body;
+    const { imageData, phone, caption } = req.body;
 
     // Validaciones adicionales
-    if (!phone || !imageData ) {
+    if (!phone || !imageData) {
       return res.status(400).json({
         success: false,
         message: "Faltan campos requeridos",
@@ -481,9 +481,19 @@ export async function sendMessageWithImage(req, res) {
       });
     }
 
+    // Validar formato del teléfono
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      return res.status(400).json({
+        success: false,
+        message: "El número de teléfono debe tener entre 10 y 15 dígitos",
+      });
+    }
+
     const result = await whatsappService.sendMessageWithImage({
       imageData,
-      phone
+      phone,
+      caption: caption || 'Imagen enviada'
     });
 
     res.json({
@@ -491,7 +501,7 @@ export async function sendMessageWithImage(req, res) {
       ...result,
     });
   } catch (error) {
-    console.error("Error en sendMessage:", error);
+    console.error("Error en sendMessageWithImage:", error);
     res.status(500).json({
       success: false,
       message: error.message,
