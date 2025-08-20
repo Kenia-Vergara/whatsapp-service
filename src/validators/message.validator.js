@@ -67,3 +67,57 @@ export const validateSendMessage = [
     next();
   }
 ];
+
+export const validateSendImage = [
+  body('phone')
+    .isString()
+    .notEmpty()
+    .withMessage('El número de teléfono es requerido')
+    .matches(/^[\d\s\-\+\(\)]+$/)
+    .withMessage('El número de teléfono debe contener solo dígitos, espacios, guiones, paréntesis y signo +'),
+  body('imageData')
+    .isString()
+    .notEmpty()
+    .withMessage('Los datos de la imagen son requeridos')
+    .custom((value) => {
+      // Validar que sea base64 válido
+      if (!value.startsWith('data:image/')) {
+        throw new Error('Los datos de la imagen deben estar en formato base64 con prefijo data:image/');
+      }
+      
+      // Validar que tenga el formato correcto
+      const base64Regex = /^data:image\/[a-z]+;base64,/;
+      if (!base64Regex.test(value)) {
+        throw new Error('Formato de imagen base64 inválido');
+      }
+      
+      // Validar que el contenido base64 no esté vacío
+      const base64Data = value.replace(/^data:image\/[a-z]+;base64,/, '');
+      if (!base64Data || base64Data.length === 0) {
+        throw new Error('El contenido de la imagen no puede estar vacío');
+      }
+      
+      return true;
+    }),
+  body('caption')
+    .optional()
+    .isString()
+    .trim()
+    .isLength({ max: 1024 })
+    .withMessage('El caption no puede exceder 1024 caracteres'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Errores de validación',
+        errors: errors.array().map(error => ({
+          field: error.path,
+          message: error.msg,
+          value: error.value
+        }))
+      });
+    }
+    next();
+  }
+];
