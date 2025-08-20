@@ -692,7 +692,7 @@ export default {
     }
   },
 
-  async sendMessageWithImage({ imageData, phone }) {
+  async sendMessageWithImage({ imageData, phone, caption }) {
     if (!connectionState.socket?.user) {
       throw new Error('No conectado a WhatsApp. Por favor, escanea el código QR primero.');
     }
@@ -725,20 +725,21 @@ export default {
     }
 
     try {
+      const captionText = caption || 'Imagen enviada';
       logger.info('Enviando mensaje con imagen WhatsApp', {
         phone: formattedPhone,
         imageSize: imageBuffer.length,
-        captionLength: caption.length
+        captionLength: captionText.length
       });
 
       // Preparar mensaje con imagen
       const messageOptions = {
         image: imageBuffer,
-        caption: caption || 'Imagen',
-        jpegThumbnail: await this.generateThumbnail(imageBuffer), // Opcional: generar thumbnail
+        caption: captionText,
+        jpegThumbnail: null,
       };
 
-      const result = await this.sendMessageImageWithRetry(formattedPhone, messageOptions);
+      const result = await connectionState.socket.sendMessage(formattedPhone, messageOptions);
 
       logger.info('Mensaje enviado exitosamente', {
         phone: formattedPhone,
@@ -750,7 +751,7 @@ export default {
         phone: formattedPhone,
         messageId: result.key.id,
         sentAt: new Date().toISOString(),
-        messagePreview: messageText.substring(0, 100) + (messageText.length > 100 ? '...' : ''),
+        messagePreview: captionText.substring(0, 100) + (captionText.length > 100 ? '...' : ''),
         type: 'image',
         imageSize: imageBuffer.length,
         status: 'sent'
@@ -768,7 +769,7 @@ export default {
         messageId: result.key.id,
         phone: formattedPhone,
         sentAt: new Date().toISOString(),
-        messagePreview: messageText.substring(0, 100) + (messageText.length > 100 ? '...' : ''),
+        messagePreview: captionText.substring(0, 100) + (captionText.length > 100 ? '...' : ''),
         type: 'image',
         imageSize: imageBuffer.length
       };
