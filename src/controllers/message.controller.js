@@ -305,7 +305,6 @@ export async function restartConnection(req, res) {
   }
 }
 
-
 export function resetAuth(req, res) {
   try {
     const authPath = path.resolve(__dirname, '..', '..', 'auth_info');
@@ -463,6 +462,39 @@ export function getReconnectionStatus(req, res) {
       success: false,
       message: 'Error al obtener estado de reconexión',
       error: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+// Funcion para enviar mensajes con imagenes
+export async function sendMessageWithImage(req, res) {
+  try {
+    const { imageData, phone } = req.body;
+
+    // Validaciones adicionales
+    if (!phone || !imageData ) {
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos requeridos",
+        required: ["imageData", "phone"],
+      });
+    }
+
+    const result = await whatsappService.sendMessageWithImage({
+      imageData,
+      phone
+    });
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("Error en sendMessage:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
       timestamp: new Date().toISOString(),
     });
   }

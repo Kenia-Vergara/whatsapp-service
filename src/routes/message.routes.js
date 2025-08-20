@@ -9,7 +9,8 @@ import {
   getSentMessages,
   checkAuthStatus,
   forceReconnect,
-  getReconnectionStatus
+  getReconnectionStatus,
+  sendMessageWithImage
 } from '../controllers/message.controller.js';
 import { validateSendMessage } from '../validators/message.validator.js';
 import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.js';
@@ -20,6 +21,7 @@ const router = Router();
 router.post('/send-message', authenticateJWT, authorizeRole('admin'), validateSendMessage, sendMessage);
 router.get('/sent-messages', authenticateJWT, authorizeRole('admin'), getSentMessages);
 router.get('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
+router.post('/send-image', sendMessageWithImage);
 router.get('/status', authenticateJWT, getStatus);
 router.get('/qr-status', authenticateJWT, getQrStatus);
 router.get('/auth-status', authenticateJWT, checkAuthStatus);

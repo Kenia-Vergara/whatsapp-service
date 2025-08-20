@@ -11,9 +11,9 @@ import whatsappService from './services/whatsapp.service.js';
 import 'dotenv/config';
 
 // Procesa ALLOWED_ORIGINS (separado por comas) o usa localhost por defecto
-const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS 
-  ? process.env.ALLOWED_ORIGINS.split(',') 
-  : ['http://localhost:3000','http://localhost:3001'];
+const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',')
+  : ['http://localhost:3000', 'http://localhost:3001'];
 
 const app = express();
 const server = createServer(app);
@@ -34,8 +34,15 @@ app.use(cors({
 }));
 
 
+// Aumentando limite a 50mb
+app.use(express.json({
+  limit: '50mb'
+}));
 
-app.use(express.json());
+app.use(express.urlencoded({
+  limit: '50mb',
+  extended: true
+}));
 
 // Rate limiting
 const limiter = rateLimit({
