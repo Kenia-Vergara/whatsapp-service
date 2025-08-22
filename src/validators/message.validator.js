@@ -121,3 +121,65 @@ export const validateSendImage = [
     next();
   }
 ];
+
+export const validateSendMessageAccept = [
+  body('telefono')
+    .isString()
+    .notEmpty()
+    .withMessage('El número de teléfono es requerido')
+    .matches(/^[\d\s\-\+\(\)]+$/)
+    .withMessage('El número de teléfono debe contener solo dígitos, espacios, guiones, paréntesis y signo +'),
+  body('comentario')
+    .isString()
+    .notEmpty()
+    .withMessage('El comentario es requerido')
+    .trim()
+    .isLength({ min: 1, max: 1000 })
+    .withMessage('El comentario debe tener entre 1 y 1000 caracteres'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Errores de validación',
+        errors: errors.array().map(error => ({
+          field: error.path,
+          message: error.msg,
+          value: error.value
+        }))
+      });
+    }
+    next();
+  }
+];
+
+export const validateSendMessageReject = [
+  body('telefono')
+    .isString()
+    .notEmpty()
+    .withMessage('El número de teléfono es requerido')
+    .matches(/^[\d\s\-\+\(\)]+$/)
+    .withMessage('El número de teléfono debe contener solo dígitos, espacios, guiones, paréntesis y signo +'),
+  body('comentario')
+    .isString()
+    .notEmpty()
+    .withMessage('El comentario es requerido')
+    .trim()
+    .isLength({ min: 1, max: 1000 })
+    .withMessage('El comentario debe tener entre 1 y 1000 caracteres'),
+  (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Errores de validación',
+        errors: errors.array().map(error => ({
+          field: error.path,
+          message: error.msg,
+          value: error.value
+        }))
+      });
+    }
+    next();
+  }
+];
