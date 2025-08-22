@@ -1009,5 +1009,110 @@ export default {
       logger.error('Error changing QR format', { error: error.message, format });
       throw error;
     }
+  },
+
+  // Método para enviar mensajes simples (aceptación/rechazo)
+  async sendSimpleMessage({ phone, message, type, useTemplate = false }) {
+    if (!connectionState.socket?.user) {
+      throw new Error('No conectado a WhatsApp. Por favor, escanea el código QR primero.');
+    }
+
+    const cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length < 10 || cleanPhone.length > 15) {
+      throw new Error('El número de teléfono debe tener entre 10 y 15 dígitos');
+    }
+
+    const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
+
+    // Importar las funciones de template
+    const { getAcceptanceTemplate, getRejectionTemplate } = await import('../templates.js');
+    
+    let finalMessage = message;
+    
+    // Si se debe usar template, aplicar el correspondiente según el tipo
+    if (useTemplate) {
+      if (type === 'accept') {
+        finalMessage = getAcceptanceTemplate(message);
+      } else if (type === 'reject') {
+        finalMessage = getRejectionTemplate(message);
+      }
+    }
+
+    try {
+      logger.info('Enviando mensaje simple WhatsApp', {
+        phone: formattedPhone,
+        type: type,
+        useTemplate: useTemplate,
+        messageLength: finalMessage.length
+      });
+
+      const result = await this.sendMessageWithRetry(formattedPhone, finalMessage);
+
+      logger.info('Mensaje simple enviado exitosamente', {
+        phone: formattedPhone,
+        type: type,
+        useTemplate: useTemplate,
+        messageId: result.key.id,
+        timestamp: new Date().toISOString()
+      });
+
+      const sentMessage = {
+        phone: formattedPhone,
+        type: type,
+        message: message, // Guardar el comentario original
+        finalMessage: finalMessage, // Guardar el mensaje final con template
+        useTemplate: useTemplate,
+        messageId: result.key.id,
+        sentAt: new Date().toISOString(),
+        messagePreview: finalMessage.substring(0, 100) + (finalMessage.length > 100 ? '...' : ''),
+        status: 'sent'
+      };
+
+      connectionState.sentMessages.push(sentMessage);
+
+      const config = getWhatsAppConfig();
+      if (connectionState.sentMessages.length > (config.messages?.maxHistorySize || 100)) {
+        connectionState.sentMessages = connectionState.sentMessages.slice(-(config.messages?.maxHistorySize || 100));
+      }
+
+      return {
+        success: true,
+        messageId: result.key.id,
+        phone: formattedPhone,
+        type: type,
+        useTemplate: useTemplate,
+        sentAt: new Date().toISOString(),
+        messagePreview: finalMessage.substring(0, 100) + (finalMessage.length > 100 ? '...' : ''),
+        originalComment: message
+      };
+
+    } catch (error) {
+      logger.error('Error enviando mensaje simple WhatsApp', {
+        phone: formattedPhone,
+        type: type,
+        useTemplate: useTemplate,
+        error: error.message,
+        stack: error.stack
+      });
+
+      if (error.message.includes('disconnected')) {
+        await cleanupConnection();
+        throw new Error('Conexión perdida con WhatsApp. Por favor, escanea el código QR nuevamente.');
+      }
+
+      if (error.message.includes('not-authorized')) {
+        throw new Error('No tienes autorización para enviar mensajes a este número.');
+      }
+
+      if (error.message.includes('forbidden')) {
+        throw new Error('No se puede enviar mensajes a este número. Verifica que el número sea válido.');
+      }
+
+      if (error.message.includes('rate limit')) {
+        throw new Error('Límite de mensajes alcanzado. Espera un momento antes de enviar más mensajes.');
+      }
+
+      throw new Error(`Error al enviar mensaje: ${error.message}`);
+    }
   }
 };

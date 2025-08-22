@@ -509,3 +509,87 @@ export async function sendMessageWithImage(req, res) {
     });
   }
 }
+
+export async function sendMessageAccept(req, res) {
+  try {
+    const { telefono, comentario } = req.body;
+
+    // Validaciones básicas
+    if (!telefono || !comentario) {
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos requeridos",
+        required: ["telefono", "comentario"],
+      });
+    }
+
+    // Validar que el comentario no esté vacío
+    if (typeof comentario !== 'string' || comentario.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "El comentario no puede estar vacío",
+      });
+    }
+
+    const result = await whatsappService.sendSimpleMessage({
+      phone: telefono,
+      message: comentario,
+      type: 'accept',
+      useTemplate: true
+    });
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("Error en sendMessageAccept:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
+
+export async function sendMessageReject(req, res) {
+  try {
+    const { telefono, comentario } = req.body;
+
+    // Validaciones básicas
+    if (!telefono || !comentario) {
+      return res.status(400).json({
+        success: false,
+        message: "Faltan campos requeridos",
+        required: ["telefono", "comentario"],
+      });
+    }
+
+    // Validar que el comentario no esté vacío
+    if (typeof comentario !== 'string' || comentario.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "El comentario no puede estar vacío",
+      });
+    }
+
+    const result = await whatsappService.sendSimpleMessage({
+      phone: telefono,
+      message: comentario,
+      type: 'reject',
+      useTemplate: true
+    });
+
+    res.json({
+      success: true,
+      ...result,
+    });
+  } catch (error) {
+    console.error("Error en sendMessageReject:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message,
+      timestamp: new Date().toISOString(),
+    });
+  }
+}
