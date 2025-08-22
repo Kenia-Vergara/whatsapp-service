@@ -10,15 +10,24 @@ import {
   checkAuthStatus,
   forceReconnect,
   getReconnectionStatus,
-  sendMessageWithImage
+  sendMessageWithImage,
+  sendMessageAccept,
+  sendMessageReject
 } from '../controllers/message.controller.js';
-import { validateSendMessage, validateSendImage } from '../validators/message.validator.js';
+import { 
+  validateSendMessage, 
+  validateSendImage, 
+  validateSendMessageAccept, 
+  validateSendMessageReject 
+} from '../validators/message.validator.js';
 import { authenticateJWT, authorizeRole } from '../middlewares/auth.middleware.js';
 import { Router } from 'express';
 
 const router = Router();
 
 router.post('/send-message', authenticateJWT, authorizeRole('admin'), validateSendMessage, sendMessage);
+router.post('/send-message-accept', validateSendMessageAccept, sendMessageAccept);
+router.post('/send-message-reject', validateSendMessageReject, sendMessageReject);
 router.get('/sent-messages', authenticateJWT, authorizeRole('admin'), getSentMessages);
 router.get('/qr-code', authenticateJWT, authorizeRole('admin'), getQrCode);
 router.post('/send-image', validateSendImage, sendMessageWithImage);
