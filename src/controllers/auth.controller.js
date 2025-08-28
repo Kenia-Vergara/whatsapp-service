@@ -18,7 +18,15 @@ export async function login(req, res) {
       { expiresIn: '1h' }
     );
 
-    res.json({ success: true, token, role: user.role });
+    // Devolver información completa del usuario
+    res.json({ 
+      success: true, 
+      token, 
+      user: {
+        username: user.username,
+        role: user.role
+      }
+    });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
@@ -32,4 +40,20 @@ export function getCurrentUser(req, res) {
       role: req.user.role
     }
   });
+}
+
+// Endpoint para verificar si el token actual es válido
+export function validateToken(req, res) {
+  try {
+    res.json({
+      success: true,
+      user: {
+        username: req.user.username,
+        role: req.user.role
+      },
+      message: 'Token válido'
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
 }
