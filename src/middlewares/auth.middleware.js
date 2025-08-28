@@ -18,14 +18,20 @@ export function authenticateJWT(req, res, next) {
 
     jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
       if (err) {
-        return res.sendStatus(403);
+        return res.status(401).json({ 
+          success: false, 
+          message: 'Token inválido o expirado' 
+        });
       }
 
       req.user = user;
       next();
     });
   } else {
-    res.sendStatus(401);
+    res.status(401).json({ 
+      success: false, 
+      message: 'Token no proporcionado' 
+    });
   }
 }
 
