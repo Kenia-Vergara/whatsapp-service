@@ -596,12 +596,12 @@ export default {
     return getQRStatus();
   },
 
-  async sendMessage({ phone, templateOption, psicologo, fecha, hora }) {
+  async sendMessage({ telefono, templateOption, nombre, fecha, hora }) {
     if (!connectionState.socket?.user) {
       throw new Error('No conectado a WhatsApp. Por favor, escanea el código QR primero.');
     }
 
-    const cleanPhone = phone.replace(/\D/g, '');
+    const cleanPhone = telefono.replace(/\D/g, '');
     if (cleanPhone.length < 10 || cleanPhone.length > 15) {
       throw new Error('El número de teléfono debe tener entre 10 y 15 dígitos');
     }
@@ -609,7 +609,7 @@ export default {
     const formattedPhone = `${cleanPhone}@s.whatsapp.net`;
 
     const messageText = getTemplate(templateOption, {
-      nombrePsicologo: psicologo,
+      nombre,
       fecha,
       hora
     });
@@ -620,9 +620,9 @@ export default {
 
     try {
       logger.info('Enviando mensaje WhatsApp', {
-        phone: formattedPhone,
+        telefono: formattedPhone,
         template: templateOption,
-        psicologo,
+        nombre,
         fecha,
         hora,
         messageLength: messageText.length
@@ -631,15 +631,15 @@ export default {
       const result = await this.sendMessageWithRetry(formattedPhone, messageText);
 
       logger.info('Mensaje enviado exitosamente', {
-        phone: formattedPhone,
+        telefono: formattedPhone,
         messageId: result.key.id,
         timestamp: new Date().toISOString()
       });
 
       const sentMessage = {
-        phone: formattedPhone,
+        telefono: formattedPhone,
         template: templateOption,
-        psicologo,
+        nombre,
         fecha,
         hora,
         messageId: result.key.id,
@@ -658,7 +658,7 @@ export default {
       return {
         success: true,
         messageId: result.key.id,
-        phone: formattedPhone,
+        telefono: formattedPhone,
         template: templateOption,
         sentAt: new Date().toISOString(),
         messagePreview: messageText.substring(0, 100) + (messageText.length > 100 ? '...' : '')
@@ -666,7 +666,7 @@ export default {
 
     } catch (error) {
       logger.error('Error enviando mensaje WhatsApp', {
-        phone: formattedPhone,
+        telefono: formattedPhone,
         error: error.message,
         stack: error.stack
       });
