@@ -1,6 +1,6 @@
 export function getTemplate(option, params = {}) {
   const {
-    nombrePsicologo = '',
+    nombre = '',
     fecha = '',
     hora = ''
   } = params;
@@ -13,7 +13,7 @@ export function getTemplate(option, params = {}) {
 
 📅 Fecha: ${fecha}
 🕐 Hora: ${hora}
-👨‍⚕️ Psicólogo: ${nombrePsicologo}
+👨‍⚕️ Psicólogo: ${nombre}
 
 🎉 ¡Recuerda que tu primera consulta es completamente GRATIS!
 
@@ -28,7 +28,7 @@ Si tienes alguna consulta, no dudes en contactarnos.
 
 📅 Fecha: ${fecha}
 🕐 Hora: ${hora}
-👨‍⚕️ Psicólogo: ${nombrePsicologo}
+👨‍⚕️ Psicólogo: ${nombre}
 
 Por favor, realiza el pago antes de la consulta para confirmar tu reserva.
 
@@ -43,7 +43,7 @@ Si tienes dudas, contáctanos.
 
 📅 Fecha: ${fecha}
 🕐 Hora: ${hora}
-👨‍⚕️ Psicólogo: ${nombrePsicologo}
+👨‍⚕️ Psicólogo: ${nombre}
 
 Por favor, confirma tu asistencia respondiendo a este mensaje.
 
@@ -56,7 +56,7 @@ Por favor, confirma tu asistencia respondiendo a este mensaje.
 
 📅 Fecha: ${fecha}
 🕐 Hora: ${hora}
-👨‍⚕️ Psicólogo: ${nombrePsicologo}
+👨‍⚕️ Psicólogo: ${nombre}
 
 ¡Gracias por avisarnos!`;
 
