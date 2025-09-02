@@ -8,21 +8,21 @@ const __dirname = path.dirname(__filename);
 
 export async function sendMessage(req, res) {
   try {
-    const { phone, templateOption, psicologo, fecha, hora } = req.body;
+const { nombre, templateOption, telefono, fecha, hora} = req.body;
 
     // Validaciones adicionales
-    if (!phone || !templateOption || !psicologo || !fecha || !hora) {
-      return res.status(400).json({
-        success: false,
-        message: "Faltan campos requeridos",
-        required: ["phone", "templateOption", "psicologo", "fecha", "hora"],
-      });
-    }
+    // if (!phone || !templateOption || !psicologo || !fecha || !hora) {
+    //   return res.status(400).json({
+    //     success: false,
+    //     message: "Faltan campos requeridos",
+    //     required: ["phone", "templateOption", "psicologo", "fecha", "hora"],
+    //   });
+    // }
 
-    const result = await whatsappService.sendMessage({
-      phone,
+      const result = await whatsappService.sendMessage({
+      nombre,
       templateOption,
-      psicologo,
+      telefono,
       fecha,
       hora,
     });
@@ -36,6 +36,7 @@ export async function sendMessage(req, res) {
     res.status(500).json({
       success: false,
       message: error.message,
+      abcd:error,
       timestamp: new Date().toISOString(),
     });
   }
