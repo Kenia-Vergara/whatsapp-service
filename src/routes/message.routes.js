@@ -25,7 +25,8 @@ import { Router } from 'express';
 
 const router = Router();
 
-router.post('/send-message', authenticateJWT, authorizeRole('admin'), validateSendMessage, sendMessage);
+// router.post('/send-message', authenticateJWT, authorizeRole('admin'), validateSendMessage, sendMessage);
+router.post('/send-message', sendMessage);
 router.post('/send-message-accept', validateSendMessageAccept, sendMessageAccept);
 router.post('/send-message-reject', validateSendMessageReject, sendMessageReject);
 router.get('/sent-messages', authenticateJWT, authorizeRole('admin'), getSentMessages);
